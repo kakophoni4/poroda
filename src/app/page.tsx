@@ -33,7 +33,7 @@ export default function HomePage() {
       <Container>
         {/* HERO */}
         <section className="grid gap-8 lg:grid-cols-2 lg:items-center">
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-0 animate-fade-in-up">
             <div className="flex flex-wrap gap-2">
               <Pill>Профессиональный уход</Pill>
               <Pill>Под задачи кожи</Pill>
@@ -75,13 +75,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="lg:pl-6">
+          <div className="lg:pl-6 opacity-0 animate-fade-in-up animation-delay-100">
             <PlaceholderImage />
           </div>
         </section>
 
         {/* CONCERNS */}
-        <section className="mt-16">
+        <section className="mt-16 opacity-0 animate-fade-in-up animation-delay-200">
           <SectionTitle title="Выберите задачу" subtitle="Плитки ведут на каталог — даже если он пока заглушка." />
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {concerns.map((c) => (

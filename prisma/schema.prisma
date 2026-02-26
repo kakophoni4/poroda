@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  passwordHash String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders        Order[]
+  promoUses     PromoUse[]
+  notifications UserNotification[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  title     String
+  sortOrder Int       @default(0)
+  products  Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  shortDesc   String?
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  price       Int
+  oldPrice    Int?
+  isNew       Boolean  @default(false)
+  skinTypes   String[] @default([])
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  orderItems  OrderItem[]
+  pageViews   PageView[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email         String
+  phone         String
+  name          String
+  address       String
+  status        String      @default("pending")
+  promoCode     String?
+  promoId       String?
+  paymentId     String?
+  total         Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  title     String
+  price     Int
+  quantity  Int
+}
+
+model Promo {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  percent     Int
+  description String?
+  maxUses      Int?
+  usedCount   Int        @default(0)
+  validFrom   DateTime?
+  validTo     DateTime?
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  uses        PromoUse[]
+}
+
+model PromoUse {
+  id        String   @id @default(cuid())
+  promoId   String
+  promo     Promo    @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String
+  usedAt    DateTime @default(now())
+}
+
+model Mailing {
+  id        String   @id @default(cuid())
+  subject   String
+  body      String
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PageView {
+  id        String   @id @default(cuid())
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  path      String
+  userId    String?
+  createdAt DateTime @default(now())
+}

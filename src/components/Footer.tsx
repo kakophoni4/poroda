@@ -32,6 +32,9 @@ export default function Footer() {
             <a className="inline-flex rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50" href="/contacts">
               Открыть контакты
             </a>
+            <a className="mt-2 block text-xs text-zinc-500 hover:text-zinc-700" href="/admin">
+              Админ-панель
+            </a>
           </div>
         </div>
 
