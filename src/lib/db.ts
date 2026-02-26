@@ -4,6 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrisma() {
+  // На Vercel задайте DATABASE_URL в Environment Variables.
+  // Для Neon и др. serverless лучше использовать pooled URL (например, с ?pgbouncer=true).
   const connectionString = process.env.DATABASE_URL || "postgresql://localhost:5432/poroda";
   const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
