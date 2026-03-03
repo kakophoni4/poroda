@@ -13,7 +13,8 @@
     "db:reset-admin": "npx tsx prisma/reset-admin-password.ts",
     "db:studio": "prisma studio",
     "copy-photos": "node scripts/copy-poroda-photos.js",
-    "assign-photos": "npx tsx scripts/assign-product-photos.ts"
+    "assign-photos": "npx tsx scripts/assign-product-photos.ts",
+    "compress-images": "node scripts/compress-images.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.1",
@@ -35,6 +36,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

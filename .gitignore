@@ -33,6 +33,9 @@ yarn-error.log*
 # uploads (загруженные фото товаров)
 /public/uploads
 
+# исходники фото (копируются в public/images через copy-photos, в репо не нужны)
+/фото PORODA
+
 # env files (can opt-in for committing if needed)
 .env*
 
