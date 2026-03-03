@@ -2,14 +2,11 @@ import Container from "./Container";
 
 export default function Footer() {
   return (
-    <footer className="mt-14 border-t border-zinc-200 bg-white">
+    <footer className="mt-14">
       <Container>
-        <div className="grid gap-10 py-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="liquidGlass-dock grid gap-10 rounded-3xl border border-white/40 px-6 py-10 sm:grid-cols-2 sm:px-8 lg:grid-cols-4">
           <div>
             <div className="text-sm font-semibold">PORODA Cosmetics</div>
-            <div className="mt-2 text-sm text-zinc-600">
-              Многостраничный сайт на Node.js. Фото добавим позже — сейчас фиксируем структуру и смысл.
-            </div>
           </div>
 
           <div className="space-y-2 text-sm">
@@ -24,13 +21,15 @@ export default function Footer() {
             <div className="font-semibold">Документы</div>
             <a className="block text-zinc-600 hover:text-zinc-900" href="/legal/privacy">Политика</a>
             <a className="block text-zinc-600 hover:text-zinc-900" href="/legal/offer">Оферта</a>
+            <a className="block text-zinc-600 hover:text-zinc-900" href="/legal/terms">Пользовательское соглашение</a>
           </div>
 
           <div className="space-y-2 text-sm">
             <div className="font-semibold">Контакты</div>
-            <div className="text-zinc-600">Email/телефон добавим</div>
-            <a className="inline-flex rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50" href="/contacts">
-              Открыть контакты
+            <a className="block text-zinc-600 hover:text-zinc-900" href="mailto:hello@porodacosmetics.ru">hello@porodacosmetics.ru</a>
+            <a className="block text-zinc-600 hover:text-zinc-900" href="tel:+79084838717">+7 908 483-87-17</a>
+            <a className="liquid-glass glass-btn inline-flex rounded-2xl border border-white/40 px-4 py-2 text-sm font-medium hover:opacity-90" href="/contacts">
+              Контакты и реквизиты
             </a>
             <a className="mt-2 block text-xs text-zinc-500 hover:text-zinc-700" href="/admin">
               Админ-панель
@@ -38,8 +37,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 py-6 text-xs text-zinc-500">
-          © {new Date().getFullYear()} PORODA Cosmetics. Все права защищены.
+        <div className="pt-6 space-y-2 text-xs text-zinc-500">
+          <div>
+            © {new Date().getFullYear()} PORODA Cosmetics. ИП Гафурова Г. Г., ИНН 732300053171, ОГРНИП 304732315200073.
+          </div>
+          <div>Юридический адрес: Россия 433000 Ульяновская обл, р-н Чердаклинский, рп Чердаклы, ул. 50 лет ВЛКСМ, 117.</div>
         </div>
       </Container>
     </footer>

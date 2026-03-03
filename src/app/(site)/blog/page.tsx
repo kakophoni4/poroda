@@ -12,7 +12,7 @@ export default function BlogPage() {
 
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-3xl border border-zinc-200 bg-white p-6">
+            <div key={i} className="glass-card rounded-3xl p-6 border-white/50">
               <div className="text-xs text-zinc-500">Скоро</div>
               <div className="mt-2 text-base font-semibold">Материал #{i}</div>
               <div className="mt-2 text-sm text-zinc-700">

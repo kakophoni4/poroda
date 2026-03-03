@@ -3,21 +3,83 @@
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   sortOptions,
   sortProducts,
+  getProductImages,
   type Product,
   type CatalogCategory,
   type SortOption,
 } from "@/lib/catalog-data";
 
+const categoryToFolder: Record<string, number> = { cleansing: 1, toners: 2, serums: 3, creams: 4, masks: 5, sets: 6 };
+
 function ProductCard({ p }: { p: Product }) {
+  const images = getProductImages(p, `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`);
+  const [index, setIndex] = useState(0);
+  const current = images[index % images.length] ?? images[0];
+
+  const go = (e: React.MouseEvent, delta: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIndex((i) => (i + delta + images.length) % images.length);
+  };
+
   return (
     <Link
       href={`/catalog/${p.slug}`}
-      className="group flex flex-col rounded-3xl border border-zinc-200 bg-white overflow-hidden transition-premium hover:shadow-lg hover:border-zinc-300"
+      className="liquidGlass-dock group flex flex-col rounded-3xl overflow-hidden transition-premium border border-white/40"
     >
-      <div className="grid-lines aspect-square w-full bg-gradient-to-b from-zinc-50 to-white" />
+      <div className="relative aspect-square w-full overflow-hidden">
+        {current ? (
+          <>
+            <Image
+              src={current}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
+              quality={82}
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              style={{ objectPosition: `${p.imageFocusX ?? 50}% ${p.imageFocusY ?? 50}%` }}
+              unoptimized={current.startsWith("/uploads/")}
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => go(e, -1)}
+                  className="glass absolute left-1 top-1/2 -translate-y-1/2 rounded-full p-1.5 shadow opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Предыдущее фото"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => go(e, 1)}
+                  className="glass absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1.5 shadow opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Следующее фото"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIndex(i); }}
+                      className={`h-1.5 rounded-full transition-all ${i === index ? "w-4 bg-white" : "w-1.5 bg-white/60"}`}
+                      aria-label={`Фото ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="grid-lines h-full w-full" />
+        )}
+      </div>
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-center gap-2">
           {p.isNew && (
@@ -84,18 +146,18 @@ export default function CatalogClient({ initialProducts, categories: cats }: Pro
 
   return (
     <div className="mt-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="glass-subtle flex flex-col gap-4 rounded-3xl border border-white/40 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-zinc-600">Сортировать</span>
+          <span className="text-sm font-medium text-zinc-800">Сортировать</span>
           <div className="flex flex-wrap gap-1">
             {sortOptions.map((opt) => (
               <Link
                 key={opt.value}
                 href={sortUrl(opt.value)}
-                className={`rounded-2xl border px-3 py-1.5 text-sm transition-colors ${
+                className={`rounded-2xl border px-3 py-1.5 text-sm font-medium transition-colors ${
                   sortParam === opt.value
                     ? "border-zinc-900 bg-zinc-900 text-white"
-                    : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                    : "glass-subtle border-white/40 text-zinc-800 hover:bg-white/50"
                 }`}
               >
                 {opt.label}
@@ -103,13 +165,13 @@ export default function CatalogClient({ initialProducts, categories: cats }: Pro
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-zinc-600">
+        <div className="flex items-center gap-2 text-sm font-medium text-zinc-800">
           <span>показывать по:</span>
           {[12, 24, 48].map((n) => (
             <Link
               key={n}
               href={perPageUrl(n)}
-              className={`rounded-lg px-2 py-1 ${perPageLocal === n ? "font-medium text-zinc-900" : "hover:bg-zinc-100"}`}
+              className={`rounded-xl border border-white/40 px-2 py-1 text-sm glass-subtle ${perPageLocal === n ? "font-semibold text-zinc-900 ring-1 ring-zinc-900/20" : "text-zinc-700"}`}
             >
               {n}
             </Link>
@@ -118,10 +180,10 @@ export default function CatalogClient({ initialProducts, categories: cats }: Pro
       </div>
 
       {categorySlug && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="glass-subtle mt-4 flex flex-wrap gap-2 rounded-2xl border border-white/40 p-3">
           <Link
             href="/catalog"
-            className="rounded-2xl border border-zinc-200 bg-white px-3 py-1.5 text-sm hover:bg-zinc-50"
+            className="glass-subtle rounded-2xl border border-white/40 px-3 py-1.5 text-sm font-medium text-zinc-800"
           >
             Все категории
           </Link>
@@ -129,10 +191,10 @@ export default function CatalogClient({ initialProducts, categories: cats }: Pro
             <Link
               key={c.slug}
               href={`/catalog?category=${c.slug}`}
-              className={`rounded-2xl border px-3 py-1.5 text-sm ${
+              className={`rounded-2xl border px-3 py-1.5 text-sm font-medium ${
                 c.slug === categorySlug
                   ? "border-zinc-900 bg-zinc-900 text-white"
-                  : "border-zinc-200 bg-white hover:bg-zinc-50"
+                  : "glass-subtle border-white/40 text-zinc-800"
               }`}
             >
               {c.title}
@@ -153,7 +215,7 @@ export default function CatalogClient({ initialProducts, categories: cats }: Pro
       {filtered.length > perPageLocal && (
         <button
           type="button"
-          className="mt-4 rounded-2xl border border-zinc-200 bg-white px-5 py-2 text-sm font-medium hover:bg-zinc-50"
+          className="liquidGlass-dock mt-4 inline-flex rounded-2xl border border-white/40 px-5 py-2 text-sm font-medium"
           onClick={() => setPerPageLocal((prev) => Math.min(filtered.length, prev + 12))}
         >
           Показать ещё

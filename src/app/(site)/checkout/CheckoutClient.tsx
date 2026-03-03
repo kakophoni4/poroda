@@ -87,7 +87,7 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
 
   if (paymentUrl) {
     return (
-      <div className="mt-8 rounded-3xl border border-zinc-200 bg-white p-8 text-center">
+      <div className="glass-card mt-8 rounded-3xl p-8 text-center border-white/50">
         <p className="text-lg font-medium">Переход к оплате</p>
         <p className="mt-2 text-sm text-zinc-600">Вы будете перенаправлены на безопасную страницу оплаты.</p>
         <a
@@ -105,23 +105,23 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
       <div className="space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-zinc-700">Имя</label>
-          <input id="name" type="text" required value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border border-zinc-200 px-4 py-2.5" />
+          <input id="name" type="text" required value={name} onChange={(e) => setName(e.target.value)} className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-zinc-700">Email</label>
-          <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-xl border border-zinc-200 px-4 py-2.5" />
+          <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-zinc-700">Телефон</label>
-          <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 w-full rounded-xl border border-zinc-200 px-4 py-2.5" />
+          <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
           <label htmlFor="address" className="block text-sm font-medium text-zinc-700">Адрес доставки</label>
-          <textarea id="address" required rows={3} value={address} onChange={(e) => setAddress(e.target.value)} className="mt-1 w-full rounded-xl border border-zinc-200 px-4 py-2.5" />
+          <textarea id="address" required rows={3} value={address} onChange={(e) => setAddress(e.target.value)} className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
           <label htmlFor="promo" className="block text-sm font-medium text-zinc-700">Промокод</label>
-          <input id="promo" type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Необязательно" className="mt-1 w-full rounded-xl border border-zinc-200 px-4 py-2.5" />
+          <input id="promo" type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Необязательно" className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
           <span className="block text-sm font-medium text-zinc-700">Способ оплаты</span>
@@ -138,7 +138,7 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
         </div>
       </div>
       <div>
-        <div className="rounded-3xl border border-zinc-200 bg-white p-6">
+        <div className="glass-card rounded-3xl p-6 border-white/50">
           <h2 className="text-lg font-semibold">Ваш заказ</h2>
           <ul className="mt-4 space-y-2">
             {cart.map(({ product, quantity }) => (
@@ -148,7 +148,7 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
               </li>
             ))}
           </ul>
-          <div className="mt-4 border-t border-zinc-200 pt-4 flex justify-between text-lg font-semibold">
+          <div className="mt-4 border-t border-white/40 pt-4 flex justify-between text-lg font-semibold">
             <span>Итого</span>
             <span>{total.toLocaleString("ru-RU")} ₽</span>
           </div>

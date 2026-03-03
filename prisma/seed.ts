@@ -5,8 +5,14 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 config({ path: path.resolve(process.cwd(), ".env") });
-const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:5432/poroda";
-const adapter = new PrismaPg({ connectionString });
+// Для Supabase: сид лучше запускать с прямым подключением (Session), иначе pooler:6543 может обрывать соединение.
+const raw = process.env.SEED_DATABASE_URL ?? process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:5432/poroda";
+const isSupabase = raw.includes("supabase") || raw.includes("pooler.");
+const connectionString = isSupabase ? `${raw}${raw.includes("?") ? "&" : "?"}connect_timeout=60` : raw;
+const poolConfig = isSupabase
+  ? { connectionString, ssl: { rejectUnauthorized: false } as const, connectionTimeoutMillis: 60000 }
+  : { connectionString };
+const adapter = new PrismaPg(poolConfig);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
@@ -44,35 +50,35 @@ async function main() {
     update: {},
     create: { slug: "sets", title: "Наборы", sortOrder: 4 },
   });
+  const catToners = await prisma.category.upsert({
+    where: { slug: "toners" },
+    update: {},
+    create: { slug: "toners", title: "Тонизация", sortOrder: 5 },
+  });
+  const catMasks = await prisma.category.upsert({
+    where: { slug: "masks" },
+    update: {},
+    create: { slug: "masks", title: "Маски", sortOrder: 6 },
+  });
 
-  await prisma.product.upsert({
-    where: { slug: "enzimnaya-pudra-umyvanie" },
-    update: {},
-    create: {
-      slug: "enzimnaya-pudra-umyvanie",
-      title: "Энзимная пудра для умывания с цинком PCA",
-      shortDesc: "Мягкое ферментное очищение, себорегуляция.",
-      categoryId: catCleansing.id,
-      price: 1287,
-      isNew: true,
-      skinTypes: ["комбинированная", "жирная", "чувствительная"],
-      sortOrder: 1,
-    },
-  });
-  await prisma.product.upsert({
-    where: { slug: "nabor-5-sredstv" },
-    update: {},
-    create: {
-      slug: "nabor-5-sredstv",
-      title: "Полный набор 5 средств для комплексного ухода",
-      shortDesc: "Очищение, увлажнение, активы под задачу.",
-      categoryId: catSets.id,
-      price: 6900,
-      oldPrice: 8200,
-      skinTypes: ["все типы"],
-      sortOrder: 2,
-    },
-  });
+  // Товары по папкам фото (1 ГЕЛЬ, 2 ТОНИК, 3 СЫВОРОТКА, 4 КРЕМ ВОКРУГ ГЛАЗ, 5 КРЕМ ОРАНЖЕВЫЙ, 6 Пудра, 7 ФЛЮИД) — названия/описания в стиле porodacosmetics.ru
+  const testProducts = [
+    { slug: "gel-umyvanie", title: "Гель для умывания", shortDesc: "Бережное очищение кожи. Подходит для ежедневного ухода.", categoryId: catCleansing.id, price: 890, imageUrl: "/images/poroda/1/1.jpg", sortOrder: 10 },
+    { slug: "tonik-aktivator", title: "Тоник-активатор", shortDesc: "Подготавливает кожу к нанесению сывороток и кремов. Тонизирует и освежает.", categoryId: catToners.id, price: 950, imageUrl: "/images/poroda/2/1.jpg", sortOrder: 11 },
+    { slug: "syvorotka-niacinamide", title: "Сыворотка с ниацинамидом", shortDesc: "Выравнивает тон кожи, уменьшает воспаления. Для комбинированной и жирной кожи.", categoryId: catSerums.id, price: 1450, isNew: true, imageUrl: "/images/poroda/3/1.jpg", sortOrder: 12 },
+    { slug: "krem-vokrug-glaz", title: "Крем вокруг глаз", shortDesc: "Уход за нежной кожей вокруг глаз. Увлажнение и уменьшение отёчности.", categoryId: catCreams.id, price: 1290, imageUrl: "/images/poroda/4/1.jpg", sortOrder: 13 },
+    { slug: "krem-oranzhevyy", title: "Крем оранжевый", shortDesc: "Питательный крем с витаминами. Сияние и упругость кожи.", categoryId: catCreams.id, price: 1590, imageUrl: "/images/poroda/5/1.jpg", sortOrder: 14 },
+    { slug: "pudra-enzimnaya", title: "Пудра энзимная для умывания", shortDesc: "Мягкое ферментное очищение. Подходит для чувствительной кожи.", categoryId: catCleansing.id, price: 1287, imageUrl: "/images/poroda/6/1.jpg", sortOrder: 15 },
+    { slug: "flyuid", title: "Флюид", shortDesc: "Лёгкая текстура, быстрое впитывание. Увлажнение без липкости.", categoryId: catCreams.id, price: 1190, imageUrl: "/images/poroda/7/1.jpg", sortOrder: 16 },
+  ];
+
+  for (const data of testProducts) {
+    await prisma.product.upsert({
+      where: { slug: data.slug },
+      update: { imageUrl: data.imageUrl },
+      create: { ...data, skinTypes: ["все типы"] },
+    });
+  }
 
   await prisma.promo.upsert({
     where: { code: "WELCOME10" },

@@ -3,13 +3,17 @@
 import { useState } from "react";
 import type { Promo } from "@prisma/client";
 
+const emptyForm = () => ({ code: "", percent: 10, description: "", maxUses: "" as number | "", active: true });
+
 export default function AdminPromosClient({ initialPromos }: { initialPromos: Promo[] }) {
   const [promos, setPromos] = useState(initialPromos);
   const [editing, setEditing] = useState<Promo | null>(null);
-  const [form, setForm] = useState({ code: "", percent: 10, description: "", maxUses: "" as number | "", active: true });
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(emptyForm);
 
   const openEdit = (p: Promo) => {
     setEditing(p);
+    setCreating(false);
     setForm({
       code: p.code,
       percent: p.percent,
@@ -17,6 +21,12 @@ export default function AdminPromosClient({ initialPromos }: { initialPromos: Pr
       maxUses: p.maxUses ?? "",
       active: p.active,
     });
+  };
+
+  const openCreate = () => {
+    setCreating(true);
+    setEditing(null);
+    setForm(emptyForm());
   };
 
   const saveEdit = async () => {
@@ -36,8 +46,31 @@ export default function AdminPromosClient({ initialPromos }: { initialPromos: Pr
     }
   };
 
+  const saveCreate = async () => {
+    if (!form.code?.trim()) return;
+    const res = await fetch("/api/admin/promos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        maxUses: form.maxUses === "" ? null : form.maxUses,
+      }),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      setPromos((prev) => [created, ...prev]);
+      setCreating(false);
+      setForm(emptyForm());
+    }
+  };
+
   return (
     <div className="mt-6 space-y-4">
+      <div className="flex justify-end">
+        <button type="button" onClick={openCreate} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+          + Добавить скидку / промокод
+        </button>
+      </div>
       {promos.map((p) => (
         <div key={p.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-200 p-4">
           <div>
@@ -46,9 +79,22 @@ export default function AdminPromosClient({ initialPromos }: { initialPromos: Pr
             {p.description && <p className="mt-1 text-sm text-zinc-600">{p.description}</p>}
             <p className="text-xs text-zinc-500">Использований: {p.usedCount} {p.maxUses != null ? `/ ${p.maxUses}` : ""}</p>
           </div>
-          <button type="button" onClick={() => openEdit(p)} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50">
-            Редактировать
-          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => openEdit(p)} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50">
+              Редактировать
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm("Удалить промокод?")) return;
+                const res = await fetch(`/api/admin/promos/${p.id}`, { method: "DELETE" });
+                if (res.ok) setPromos((prev) => prev.filter((x) => x.id !== p.id));
+              }}
+              className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+            >
+              Удалить
+            </button>
+          </div>
         </div>
       ))}
 
@@ -81,6 +127,40 @@ export default function AdminPromosClient({ initialPromos }: { initialPromos: Pr
             <div className="mt-6 flex gap-2">
               <button type="button" onClick={saveEdit} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">Сохранить</button>
               <button type="button" onClick={() => setEditing(null)} className="rounded-xl border px-4 py-2 text-sm hover:bg-zinc-50">Отмена</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {creating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6">
+            <h3 className="font-semibold">Новый промокод</h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Код</label>
+                <input value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" placeholder="SALE20" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Процент скидки</label>
+                <input type="number" value={form.percent} onChange={(e) => setForm((f) => ({ ...f, percent: Number(e.target.value) || 0 }))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Описание</label>
+                <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Макс. использований (пусто = без лимита)</label>
+                <input type="number" value={form.maxUses} onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value === "" ? "" : Number(e.target.value) }))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" />
+              </div>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
+                <span className="text-sm">Активен</span>
+              </label>
+            </div>
+            <div className="mt-6 flex gap-2">
+              <button type="button" onClick={saveCreate} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">Создать</button>
+              <button type="button" onClick={() => { setCreating(false); setForm(emptyForm()); }} className="rounded-xl border px-4 py-2 text-sm hover:bg-zinc-50">Отмена</button>
             </div>
           </div>
         </div>

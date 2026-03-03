@@ -10,7 +10,7 @@ function CatalogFallback() {
   return (
     <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="h-64 rounded-3xl border border-zinc-200 bg-zinc-50 animate-pulse" />
+        <div key={i} className="liquidGlass-dock h-64 rounded-3xl animate-pulse border border-white/40" />
       ))}
     </div>
   );
@@ -25,18 +25,34 @@ export default async function CatalogPage() {
       prisma.product.findMany({ include: { category: { select: { slug: true, title: true } } } }),
     ]);
     if (dbProducts.length > 0) {
-      products = dbProducts.map((p) => ({
-        id: p.id,
-        slug: p.slug,
-        title: p.title,
-        shortDesc: p.shortDesc || undefined,
-        category: p.category.title,
-        categorySlug: p.category.slug,
-        price: p.price,
-        oldPrice: p.oldPrice ?? undefined,
-        isNew: p.isNew,
-        skinTypes: p.skinTypes,
-      }));
+      const categoryToFolder: Record<string, number> = { cleansing: 1, toners: 2, serums: 3, creams: 4, masks: 5, sets: 6 };
+      const defaultImg = (slug: string) => `/images/poroda/${categoryToFolder[slug] ?? 1}/1.jpg`;
+      products = dbProducts.map((p) => {
+        const fallback = defaultImg(p.category.slug);
+        const imageUrls = (p as { imageUrls?: string[] }).imageUrls?.length
+          ? (p as { imageUrls?: string[] }).imageUrls!
+          : (p.imageUrl ? [p.imageUrl] : [fallback]);
+        return {
+          id: p.id,
+          slug: p.slug,
+          title: p.title,
+          shortDesc: p.shortDesc || undefined,
+          category: p.category.title,
+          categorySlug: p.category.slug,
+          price: p.price,
+          oldPrice: p.oldPrice ?? undefined,
+          isNew: p.isNew,
+          skinTypes: p.skinTypes,
+          imageUrl: p.imageUrl ?? fallback,
+          imageUrls,
+          imageFocusX: (p as { imageFocusX?: number | null }).imageFocusX ?? undefined,
+          imageFocusY: (p as { imageFocusY?: number | null }).imageFocusY ?? undefined,
+          composition: p.composition ?? undefined,
+          components: p.components ?? undefined,
+          extraField1: p.extraField1 ?? undefined,
+          extraField2: p.extraField2 ?? undefined,
+        };
+      });
       categories = dbCategories.map((c) => ({ id: c.id, slug: c.slug, title: c.title, productCount: c._count.products }));
     }
   } catch {
@@ -46,7 +62,10 @@ export default async function CatalogPage() {
     <PageShell>
       <Container>
         <Breadcrumbs items={[{ href: "/catalog", label: "Каталог" }]} />
-        <h1 className="mt-4 text-3xl font-semibold">Каталог</h1>
+        <div className="liquidGlass-dock mt-4 aspect-[3/1] max-h-48 w-full overflow-hidden rounded-3xl border border-white/40">
+          <img src="/images/obshchie/catalog-banner.jpg" alt="" className="h-full w-full object-cover" />
+        </div>
+        <h1 className="mt-6 text-3xl font-semibold">Каталог</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-700">
           Профессиональная уходовая косметика PORODA. Выберите категорию или сортировку.
         </p>

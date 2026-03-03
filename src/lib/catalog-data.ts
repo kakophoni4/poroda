@@ -9,6 +9,14 @@ export type Product = {
   oldPrice?: number;
   isNew?: boolean;
   skinTypes?: string[];
+  imageUrl?: string;
+  imageUrls?: string[];
+  imageFocusX?: number | null;
+  imageFocusY?: number | null;
+  composition?: string;
+  components?: string;
+  extraField1?: string;
+  extraField2?: string;
 };
 
 export type CatalogCategory = {
@@ -26,6 +34,7 @@ export const categories: CatalogCategory[] = [
   { slug: "sets", title: "Наборы", productCount: 3 },
 ];
 
+// Фото из public/images/poroda/ (папки 1–7 после npm run copy-photos)
 export const products: Product[] = [
   {
     id: "1",
@@ -37,6 +46,7 @@ export const products: Product[] = [
     price: 1287,
     isNew: true,
     skinTypes: ["комбинированная", "жирная", "чувствительная"],
+    imageUrl: "/images/poroda/6/1.jpg",
   },
   {
     id: "2",
@@ -47,6 +57,7 @@ export const products: Product[] = [
     categorySlug: "cleansing",
     price: 890,
     skinTypes: ["все типы"],
+    imageUrl: "/images/poroda/1/1.jpg",
   },
   {
     id: "3",
@@ -57,6 +68,7 @@ export const products: Product[] = [
     categorySlug: "toners",
     price: 950,
     skinTypes: ["все типы"],
+    imageUrl: "/images/poroda/2/1.jpg",
   },
   {
     id: "4",
@@ -68,6 +80,7 @@ export const products: Product[] = [
     price: 1450,
     isNew: true,
     skinTypes: ["комбинированная", "жирная", "проблемная"],
+    imageUrl: "/images/poroda/3/1.jpg",
   },
   {
     id: "5",
@@ -78,6 +91,7 @@ export const products: Product[] = [
     categorySlug: "serums",
     price: 1690,
     skinTypes: ["все типы"],
+    imageUrl: "/images/poroda/3/1.jpg",
   },
   {
     id: "6",
@@ -88,6 +102,7 @@ export const products: Product[] = [
     categorySlug: "creams",
     price: 1290,
     skinTypes: ["сухая", "обезвоженная", "чувствительная"],
+    imageUrl: "/images/poroda/4/1.jpg",
   },
   {
     id: "7",
@@ -99,6 +114,7 @@ export const products: Product[] = [
     price: 6900,
     oldPrice: 8200,
     skinTypes: ["все типы"],
+    imageUrl: "/images/poroda/6/1.jpg",
   },
   {
     id: "8",
@@ -109,6 +125,7 @@ export const products: Product[] = [
     categorySlug: "masks",
     price: 890,
     skinTypes: ["все типы"],
+    imageUrl: "/images/poroda/5/1.jpg",
   },
 ];
 
@@ -121,6 +138,13 @@ export const sortOptions: { value: SortOption; label: string }[] = [
   { value: "price_asc", label: "от дешевых к дорогим" },
   { value: "price_desc", label: "от дорогих к дешевым" },
 ];
+
+/** Список URL фото товара: imageUrls или [imageUrl] или [fallback]. */
+export function getProductImages(p: Product, fallback?: string): string[] {
+  if (p.imageUrls?.length) return p.imageUrls;
+  if (p.imageUrl) return [p.imageUrl];
+  return fallback ? [fallback] : [];
+}
 
 export function sortProducts(products: Product[], sort: SortOption): Product[] {
   const arr = [...products];

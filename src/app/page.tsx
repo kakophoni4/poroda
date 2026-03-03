@@ -1,32 +1,72 @@
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
 import SectionTitle from "@/components/SectionTitle";
+import { getFeaturedProducts } from "@/lib/featured-products";
 import { homeData } from "@/lib/site-data";
+import Link from "next/link";
 
-function PlaceholderImage() {
+function HeroImage() {
   return (
-    <div className="grid-lines relative overflow-hidden rounded-3xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(0,0,0,0.06),transparent_40%),radial-gradient(circle_at_80%_30%,rgba(0,0,0,0.05),transparent_45%)]" />
-      <div className="relative flex h-full min-h-[260px] items-end p-6">
-        <div className="rounded-2xl border border-zinc-200 bg-white/70 px-4 py-3 backdrop-blur">
-          <div className="text-sm text-zinc-700">Здесь будет фото/баннер</div>
-          <div className="text-xs text-zinc-500">пока ставим аккуратную заглушку</div>
-        </div>
-      </div>
+    <div className="liquidGlass-dock relative aspect-[4/3] min-h-[260px] overflow-hidden rounded-3xl border border-white/40">
+      {/* После node scripts/copy-poroda-photos.js в public/images/obshchie появится hero.jpg */}
+      <img
+        src="/images/obshchie/hero.jpg"
+        alt=""
+        className="h-full w-full object-cover"
+      />
     </div>
   );
 }
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-zinc-700">
+    <span className="liquid-glass glass-btn inline-flex items-center rounded-full px-3 py-1 text-xs text-zinc-700">
       {children}
     </span>
   );
 }
 
+async function FeaturedProductsSection() {
+  const products = await getFeaturedProducts();
+  if (products.length === 0) return null;
+  return (
+    <section className="mt-16">
+      <SectionTitle title="Рекомендуемое" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {products.map((p) => (
+          <Link
+            key={p.id}
+            href={`/catalog/${p.slug}`}
+            className="liquidGlass-dock group rounded-3xl border border-white/40 overflow-hidden"
+          >
+            <div className="aspect-square overflow-hidden rounded-t-3xl bg-zinc-100">
+              <img
+                src={p.imageUrl}
+                alt=""
+                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              />
+            </div>
+            <div className="p-5">
+              <div className="text-sm font-semibold text-zinc-900">{p.title}</div>
+              {p.shortDesc && (
+                <div className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-600">{p.shortDesc}</div>
+              )}
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm font-medium">{p.priceFormatted}</span>
+                <span className="rounded-2xl bg-zinc-900 px-4 py-2 text-xs font-medium text-white">
+                  Подробнее
+                </span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
-  const { hero, benefits, concerns, featuredProducts, steps, blogTeasers } = homeData;
+  const { hero, benefits, concerns, steps, blogTeasers } = homeData;
 
   return (
     <PageShell>
@@ -37,7 +77,7 @@ export default function HomePage() {
             <div className="flex flex-wrap gap-2">
               <Pill>Профессиональный уход</Pill>
               <Pill>Под задачи кожи</Pill>
-              <Pill>Без фото — но уже структура</Pill>
+              <Pill>Каталог с фото</Pill>
             </div>
 
             <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -56,7 +96,7 @@ export default function HomePage() {
               </a>
               <a
                 href="/faq"
-                className="inline-flex items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                className="liquid-glass glass-btn inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-medium text-zinc-900"
               >
                 {hero.secondaryCta}
               </a>
@@ -66,7 +106,7 @@ export default function HomePage() {
               {benefits.map((b) => (
                 <div
                   key={b.title}
-                  className="rounded-3xl border border-zinc-200 bg-white p-4"
+                  className="liquidGlass-dock rounded-3xl border border-white/40 p-4"
                 >
                   <div className="text-sm font-medium">{b.title}</div>
                   <div className="mt-1 text-xs leading-relaxed text-zinc-600">{b.text}</div>
@@ -76,19 +116,19 @@ export default function HomePage() {
           </div>
 
           <div className="lg:pl-6 opacity-0 animate-fade-in-up animation-delay-100">
-            <PlaceholderImage />
+            <HeroImage />
           </div>
         </section>
 
         {/* CONCERNS */}
         <section className="mt-16 opacity-0 animate-fade-in-up animation-delay-200">
-          <SectionTitle title="Выберите задачу" subtitle="Плитки ведут на каталог — даже если он пока заглушка." />
+          <SectionTitle title="Выберите вашу проблему" />
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {concerns.map((c) => (
               <a
                 key={c}
                 href="/catalog"
-                className="group rounded-3xl border border-zinc-200 bg-white p-5 hover:bg-zinc-50"
+                className="liquidGlass-dock group rounded-3xl border border-white/40 p-5"
               >
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-zinc-900">{c}</div>
@@ -100,35 +140,15 @@ export default function HomePage() {
         </section>
 
         {/* FEATURED PRODUCTS */}
-        <section className="mt-16">
-          <SectionTitle title="Рекомендуемое" subtitle="Карточки без фото, но с живыми названиями — чтобы показать прогресс." />
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredProducts.map((p) => (
-              <div key={p.title} className="rounded-3xl border border-zinc-200 bg-white p-5">
-                <div className="grid-lines mb-4 h-36 rounded-2xl border border-zinc-200 bg-zinc-50" />
-                <div className="text-sm font-semibold">{p.title}</div>
-                <div className="mt-1 text-xs leading-relaxed text-zinc-600">{p.desc}</div>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="text-sm font-medium">{p.price}</div>
-                  <a
-                    href="/catalog"
-                    className="rounded-2xl bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800"
-                  >
-                    Подробнее
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <FeaturedProductsSection />
 
         {/* STEPS */}
         <section className="mt-16">
-          <SectionTitle title="Как собрать уход" subtitle="Простой ориентир — потом можно сделать квиз-подбор." />
+          <SectionTitle title="Советы по подбору ухода" />
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {steps.map((s, idx) => (
-              <div key={s.title} className="rounded-3xl border border-zinc-200 bg-white p-6">
-                <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-semibold">
+              <div key={s.title} className="liquidGlass-dock rounded-3xl border border-white/40 p-6">
+                <div className="glass-subtle mb-3 inline-flex h-9 w-9 items-center justify-center rounded-2xl text-sm font-semibold">
                   {idx + 1}
                 </div>
                 <div className="text-base font-semibold">{s.title}</div>
@@ -140,13 +160,13 @@ export default function HomePage() {
 
         {/* BLOG TEASERS */}
         <section className="mt-16">
-          <SectionTitle title="Материалы" subtitle="Пока заглушки, но раздел уже заложен." />
+          <SectionTitle title="Наши статьи" />
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             {blogTeasers.map((b) => (
               <a
                 key={b.title}
                 href="/blog"
-                className="group rounded-3xl border border-zinc-200 bg-white p-6 hover:bg-zinc-50"
+                className="liquidGlass-dock group rounded-3xl border border-white/40 p-6"
               >
                 <div className="text-xs text-zinc-500">{b.tag}</div>
                 <div className="mt-2 text-base font-semibold group-hover:underline">{b.title}</div>
@@ -158,39 +178,17 @@ export default function HomePage() {
 
         {/* SERVICE BLOCKS */}
         <section className="mt-16">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6">
-              <div className="text-base font-semibold">FAQ и сочетания</div>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-700">
-                Короткие ответы про использование, порядок нанесения, сочетания активов.
-              </p>
-              <a
-                href="/faq"
-                className="mt-4 inline-flex rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-              >
-                Перейти в FAQ
-              </a>
-            </div>
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6">
-              <div className="text-base font-semibold">Доставка и оплата</div>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-700">
-                Раздел уже есть в структуре — добавим условия и сроки, когда будете готовы.
-              </p>
-              <a
-                href="/delivery"
-                className="mt-4 inline-flex rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-              >
-                Условия доставки
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* FOOTNOTE */}
-        <section className="mt-16 mb-6 rounded-3xl border border-zinc-200 bg-zinc-50 p-6">
-          <div className="text-sm font-medium">Статус</div>
-          <div className="mt-1 text-sm text-zinc-700">
-            Главная страница готова. Остальные разделы открываются.
+          <div className="liquidGlass-dock rounded-3xl border border-white/40 p-6">
+            <div className="text-base font-semibold">FAQ и сочетания</div>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-700">
+              Короткие ответы про использование, порядок нанесения, сочетания активов.
+            </p>
+            <a
+              href="/faq"
+              className="liquid-glass glass-btn mt-4 inline-flex rounded-2xl px-4 py-2 text-sm font-medium"
+            >
+              Перейти в FAQ
+            </a>
           </div>
         </section>
       </Container>

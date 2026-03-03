@@ -11,3 +11,4 @@ export async function GET() {
   });
   return NextResponse.json(users.map((u) => ({ ...u, ordersCount: u._count.orders })));
 }
+

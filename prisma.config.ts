@@ -7,14 +7,17 @@ import { defineConfig } from "prisma/config";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, ".env"), override: true });
 
-// На Vercel при сборке DATABASE_URL может быть не задан — используем заглушку для prisma generate.
+// Локально: из .env. Для CLI (migrate/push) Prisma читает env до загрузки конфига — задаём явно.
 const url =
-  process.env.DATABASE_URL ||
-  "postgresql://postgres:postgres@127.0.0.1:5432/poroda";
+  process.env.DATABASE_URL?.trim() ||
+  "postgresql://postgres:qwe@localhost:5432/poroda";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
     url,
+  },
+  migrations: {
+    seed: "npx tsx prisma/seed.ts",
   },
 });

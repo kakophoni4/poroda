@@ -12,12 +12,12 @@ export default function AccountOrdersPage() {
       <h1 className="mt-4 text-2xl font-semibold">История заказов</h1>
       <div className="mt-6 space-y-4">
         {orders.length === 0 ? (
-          <p className="rounded-3xl border border-zinc-200 bg-white p-8 text-center text-zinc-600">
+          <p className="glass-card rounded-3xl p-8 text-center text-zinc-600 border-white/50">
             Пока нет заказов. <a href="/catalog" className="underline hover:text-zinc-900">Перейти в каталог</a>
           </p>
         ) : (
           orders.map((o) => (
-            <div key={o.id} className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-zinc-200 bg-white p-6">
+            <div key={o.id} className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-3xl p-6 border-white/50">
               <div>
                 <span className="font-medium">{o.id}</span>
                 <span className="ml-2 text-sm text-zinc-500">{o.date}</span>

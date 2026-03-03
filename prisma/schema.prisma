@@ -26,6 +26,7 @@ model User {
   orders        Order[]
   promoUses     PromoUse[]
   notifications UserNotification[]
+  favorites     UserFavorite[]
 }
 
 model Category {
@@ -37,21 +38,41 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  title       String
-  shortDesc   String?
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  price       Int
-  oldPrice    Int?
-  isNew       Boolean  @default(false)
-  skinTypes   String[] @default([])
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  orderItems  OrderItem[]
-  pageViews   PageView[]
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  shortDesc    String?
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  price        Int
+  oldPrice     Int?
+  isNew        Boolean  @default(false)
+  skinTypes    String[] @default([])
+  sortOrder    Int      @default(0)
+  featuredSortOrder Int? // если задан — товар показывается на главной в этом порядке; иначе на главной рандом
+  imageUrl     String?
+  imageUrls    String[] @default([]) // несколько фото товара
+  imageFocusX  Int?     // точка фокуса главного фото (0–100), для object-position по X
+  imageFocusY  Int?     // точка фокуса главного фото (0–100), для object-position по Y
+  composition  String?  // состав
+  components   String?  // компоненты
+  extraField1  String?  // тестовое текстовое поле 1
+  extraField2  String?  // тестовое текстовое поле 2
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orderItems   OrderItem[]
+  pageViews    PageView[]
+  userFavorites UserFavorite[]
+}
+
+model UserFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([userId, productId])
 }
 
 model Order {

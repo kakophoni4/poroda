@@ -32,14 +32,15 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur-md">
-      <Container>
-        <div className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b border-white/30">
+      <div className="liquidGlass-dock w-full overflow-visible">
+        <Container className="overflow-visible">
+          <div className="flex h-16 items-center justify-between gap-4 overflow-visible">
           <Link href="/" className="shrink-0" aria-label="На главную">
             <Logo />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex" ref={dropdownRef}>
+          <nav className="hidden items-center gap-1 overflow-visible lg:flex" ref={dropdownRef}>
             {mainNav.map((n) =>
               n.hasDropdown ? (
                 <div
@@ -58,8 +59,8 @@ export default function Header() {
                     </svg>
                   </Link>
                   {catalogOpen && (
-                    <div className="absolute left-0 top-full pt-1">
-                      <div className="min-w-[220px] rounded-2xl border border-zinc-200 bg-white py-2 shadow-lg">
+                    <div className="absolute left-0 top-full z-[100] pt-1">
+                      <div className="liquidGlass-dock min-w-[220px] rounded-2xl border border-white/40 py-2">
                         <Link
                           href="/catalog"
                           className="block px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
@@ -94,7 +95,7 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <Link
               href="/account"
-              className="hidden rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50 sm:inline-flex"
+              className="liquid-glass glass-btn hidden rounded-2xl px-4 py-2 text-sm font-medium sm:inline-flex"
             >
               Кабинет
             </Link>
@@ -126,7 +127,7 @@ export default function Header() {
         <div
           className={`overflow-hidden transition-all duration-300 ease-out lg:hidden ${mobileMenuOpen ? "max-h-[400px] pb-3" : "max-h-0"}`}
         >
-          <div className="flex flex-col gap-1 border-t border-zinc-200 pt-3">
+          <div className="flex flex-col gap-1 border-t border-white/30 pt-3">
             <Link href="/catalog" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900">
               Каталог
             </Link>
@@ -146,7 +147,8 @@ export default function Header() {
             ))}
           </div>
         </div>
-      </Container>
+        </Container>
+      </div>
     </header>
   );
 }
