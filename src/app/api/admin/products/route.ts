@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     components?: string;
     extraField1?: string;
     extraField2?: string;
-    featuredSortOrder?: number | null;
+    featuredSortOrder?: number | string | null;
   };
   if (!slug || !title || !categoryId || price == null) {
     return NextResponse.json({ error: "slug, title, categoryId, price обязательны" }, { status: 400 });
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       components: components?.trim() || null,
       extraField1: extraField1?.trim() || null,
       extraField2: extraField2?.trim() || null,
-      featuredSortOrder: featuredSortOrder != null && featuredSortOrder !== "" ? Math.max(0, Math.floor(Number(featuredSortOrder))) : null,
+      featuredSortOrder: featuredSortOrder != null && String(featuredSortOrder).trim() !== "" ? Math.max(0, Math.floor(Number(featuredSortOrder))) : null,
     },
   });
   return NextResponse.json(product);

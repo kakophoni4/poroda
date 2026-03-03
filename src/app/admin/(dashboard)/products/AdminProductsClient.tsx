@@ -421,9 +421,9 @@ export default function AdminProductsClient({
           className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-200 p-4"
         >
           <div className="flex items-center gap-4">
-            {(p as { imageUrls?: string[] }).imageUrls?.[0] || p.imageUrl ? (
+            {((p as { imageUrls?: string[] }).imageUrls?.[0] ?? p.imageUrl ?? "") ? (
               <img
-                src={(p as { imageUrls?: string[] }).imageUrls?.[0] || p.imageUrl}
+                src={(p as { imageUrls?: string[] }).imageUrls?.[0] ?? p.imageUrl ?? ""}
                 alt=""
                 className="h-14 w-14 rounded-lg object-cover"
               />

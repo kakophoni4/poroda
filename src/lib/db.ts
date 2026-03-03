@@ -29,6 +29,6 @@ function getPrisma(): PrismaClient {
 // Ленивая инициализация: клиент создаётся при первом обращении (когда Next уже подгрузил .env)
 export const prisma = new Proxy({} as PrismaClient, {
   get(_, prop: string) {
-    return (getPrisma() as Record<string, unknown>)[prop];
+    return (getPrisma() as unknown as Record<string, unknown>)[prop];
   },
 });
