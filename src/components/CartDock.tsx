@@ -17,7 +17,8 @@ export default function CartDock() {
   /** Видимость (opacity / transform) */
   const [panelVisible, setPanelVisible] = useState(false);
   const [dockTop, setDockTop] = useState(96);
-  const closeFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Явно number: в DOM setTimeout возвращает number; с @types/node глобальный Timeout конфликтует при сборке */
+  const closeFallbackTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const measure = () => {
