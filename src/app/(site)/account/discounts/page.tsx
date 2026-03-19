@@ -13,7 +13,7 @@ export default function AccountDiscountsPage() {
       <p className="mt-2 text-sm text-zinc-600">Ваши персональные промокоды и условия.</p>
       <div className="mt-6 space-y-4">
         {discounts.map((d) => (
-          <div key={d.code} className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-3xl p-6 border-white/50">
+          <div key={d.code} className="liquidGlass-dock flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/40 p-6">
             <div>
               <span className="font-mono font-semibold">{d.code}</span>
               <span className="ml-2 rounded-full bg-zinc-900 px-2 py-0.5 text-xs text-white">−{d.percent}%</span>

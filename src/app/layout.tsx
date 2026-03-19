@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Providers from "@/components/Providers";
+import CartDock from "@/components/CartDock";
+import PageTransition from "@/components/PageTransition";
+
+const manrope = Manrope({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "PORODA Cosmetics",
@@ -10,9 +20,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
-      <body className="min-h-screen bg-transparent text-zinc-900 antialiased">
-        {/* SVG-фильтры liquid-glass (macos-style): искажение для контейнеров и кнопок */}
+    <html lang="ru" className={`${manrope.variable} overflow-x-hidden`}>
+      <body className="min-h-screen overflow-x-hidden bg-transparent font-sans text-zinc-900 antialiased">
+        {/* SVG-фильтры «жидкого стекла» (искажение + dock) */}
         <svg aria-hidden="true" className="absolute h-0 w-0 overflow-hidden" style={{ position: "absolute" }}>
           <defs>
             <filter id="container-glass" x="0%" y="0%" width="100%" height="100%">
@@ -25,7 +35,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <feGaussianBlur in="noise" stdDeviation="0.02" result="blur" />
               <feDisplacementMap in="SourceGraphic" in2="blur" scale="60" xChannelSelector="R" yChannelSelector="G" />
             </filter>
-            {/* liquid-glass dock: мягкая карта без полос (сильный blur карты, меньше scale) */}
             <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
               <feTurbulence type="fractalNoise" baseFrequency="0.015 0.015" numOctaves="1" seed="5" result="turbulence" />
               <feComponentTransfer in="turbulence" result="mapped">
@@ -55,11 +64,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
         </div>
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <Providers>
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <Header />
+            <CartDock />
+            <main className="flex-1">
+              <PageTransition>{children}</PageTransition>
+            </main>
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );

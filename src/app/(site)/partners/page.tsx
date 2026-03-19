@@ -33,10 +33,9 @@ export default function PartnersPage() {
   return (
     <PageShell>
       <Container className="max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Партнёрам</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Партнёрам</h1>
         <p className="mt-2 text-lg text-zinc-600">
-          Стать официальным дистрибьютором PORODA — это выгодное партнерство для вашего бизнеса, которое принесет
-          стабильный доход и доверие ваших клиентов.
+          Стать официальным дистрибьютором PORODA — выгодное партнёрство для вашего бизнеса.
         </p>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-start">
@@ -67,8 +66,8 @@ export default function PartnersPage() {
                     onClick={() => setOpenIndex(openIndex === index ? null : index)}
                     className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
                       openIndex === index
-                        ? "liquid-glass border-white/50 bg-white/20 text-zinc-900"
-                        : "border-white/40 text-zinc-700 hover:border-white/50 hover:bg-white/10"
+                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                        : "liquidGlass-dock border border-white/40 text-zinc-700 hover:opacity-95"
                     }`}
                   >
                     <span className="line-clamp-2">{r.title}</span>
@@ -94,7 +93,7 @@ export default function PartnersPage() {
           </div>
         </section>
 
-        <div className="mt-12 rounded-3xl border border-white/40 bg-white/5 p-6 text-center sm:p-8">
+        <div className="liquidGlass-dock mt-12 rounded-3xl border border-white/40 p-6 text-center sm:p-8">
           <p className="text-base text-zinc-700 sm:text-lg">
             Пишите нам на почту{" "}
             <a
@@ -107,7 +106,7 @@ export default function PartnersPage() {
           </p>
           <a
             href="mailto:hello@porodacosmetics.ru"
-            className="liquid-glass glass-btn mt-4 inline-flex rounded-2xl border border-white/40 px-6 py-3 text-sm font-medium text-zinc-900"
+            className="glass-subtle mt-4 inline-flex rounded-2xl border border-white/45 px-6 py-3 text-sm font-medium text-zinc-900 shadow-sm transition hover:bg-white/45"
           >
             Написать
           </a>

@@ -30,9 +30,9 @@ export default async function CheckoutPage() {
   return (
     <PageShell>
       <Container>
-        <Breadcrumbs items={[{ href: "/catalog", label: "Каталог" }, { label: "Оформление заказа" }]} />
+        <Breadcrumbs items={[{ href: "/catalog", label: "Продукция" }, { label: "Оформление заказа" }]} />
         <h1 className="mt-4 text-3xl font-semibold">Оформление заказа</h1>
-        <Suspense fallback={<div className="glass-subtle mt-8 h-64 animate-pulse rounded-3xl" />}>
+        <Suspense fallback={<div className="liquidGlass-dock mt-8 h-64 animate-pulse rounded-3xl border border-white/40" />}>
           <CheckoutClient products={products} />
         </Suspense>
       </Container>

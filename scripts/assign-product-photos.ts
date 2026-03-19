@@ -1,5 +1,5 @@
 /**
- * Назначает всем товарам из БД фото из папок public/images/poroda/1..7
+ * Назначает всем позициям продукции в БД фото из папок public/images/poroda/1..7
  * по правилу: slug -> папка (из seed) или категория -> папка.
  * Запуск: npx tsx scripts/assign-product-photos.ts (из папки poroda-site)
  */
@@ -81,7 +81,7 @@ async function main() {
       console.log(p.slug, "— папка", folderNum, ", фото:", imageUrls.length);
     }
   }
-  console.log("Готово. Обновлено товаров:", products.length);
+  console.log("Готово. Обновлено позиций:", products.length);
 }
 
 main()

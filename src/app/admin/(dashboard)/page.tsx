@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
   const stats = [
     { label: "Заказов", value: String(orderCount), href: "/admin/orders" },
     { label: "Клиентов", value: String(userCount), href: "/admin/users" },
-    { label: "Товаров", value: String(productCount), href: "/admin/products" },
+    { label: "Позиций в каталоге", value: String(productCount), href: "/admin/products" },
   ];
 
   return (
@@ -37,7 +37,7 @@ export default async function AdminDashboardPage() {
         <h2 className="font-semibold">Разделы</h2>
         <p className="mt-2 text-sm text-zinc-600">
           <Link href="/admin/orders" className="underline">Заказы</Link> — просмотр и ручное редактирование.{" "}
-          <Link href="/admin/analytics" className="underline">Аналитика</Link> — посещения, топ товаров, заказы по промокодам.
+          <Link href="/admin/analytics" className="underline">Аналитика</Link> — посещения, топ продукции, заказы по промокодам.
         </p>
       </div>
     </>

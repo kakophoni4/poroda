@@ -4,8 +4,12 @@ import AdminLogout from "./AdminLogout";
 
 const adminNav = [
   { href: "/admin", label: "Дашборд" },
+  { href: "/admin/banners", label: "Баннеры" },
+  { href: "/admin/concerns", label: "Проблемы" },
+  { href: "/admin/quiz", label: "Квиз" },
+  { href: "/admin/articles", label: "Статьи" },
   { href: "/admin/orders", label: "Заказы" },
-  { href: "/admin/products", label: "Товары" },
+  { href: "/admin/products", label: "Продукция" },
   { href: "/admin/promos", label: "Скидки" },
   { href: "/admin/mailings", label: "Рассылки" },
   { href: "/admin/analytics", label: "Аналитика" },

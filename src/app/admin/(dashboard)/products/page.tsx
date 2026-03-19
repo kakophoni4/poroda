@@ -36,11 +36,11 @@ export default async function AdminProductsPage() {
     ]);
     return (
       <>
-        <h1 className="text-2xl font-semibold">Товары</h1>
+        <h1 className="text-2xl font-semibold">Продукция</h1>
         <p className="mt-1 text-sm text-zinc-600">Управление каталогом: добавление, редактирование, удаление.</p>
         {products.length === 0 && (
           <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            В базе пока нет товаров. Заполнить каталог: в папке <code className="rounded bg-amber-100 px-1">poroda-site</code> выполни{" "}
+            В базе пока нет позиций каталога. Заполнить каталог: в папке <code className="rounded bg-amber-100 px-1">poroda-site</code> выполни{" "}
             <code className="rounded bg-amber-100 px-1">npx tsx prisma/seed.ts</code> (или <code className="rounded bg-amber-100 px-1">npm run db:seed</code>).
           </p>
         )}
@@ -52,7 +52,7 @@ export default async function AdminProductsPage() {
     if (err?.code === "P2022") {
       return (
         <>
-          <h1 className="text-2xl font-semibold">Товары</h1>
+          <h1 className="text-2xl font-semibold">Продукция</h1>
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6">
             <p className="font-medium text-amber-900">В базе данных нет новых колонок</p>
             <p className="mt-2 text-sm text-amber-800">

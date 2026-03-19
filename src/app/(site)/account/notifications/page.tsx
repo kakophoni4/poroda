@@ -13,7 +13,7 @@ export default function AccountNotificationsPage() {
       <p className="mt-2 text-sm text-zinc-600">Статус заказов, акции и новости.</p>
       <div className="mt-6 space-y-3">
         {notifications.map((n, i) => (
-          <div key={i} className={`glass-card rounded-3xl p-5 border-white/50 ${n.read ? "" : "opacity-90"}`}>
+          <div key={i} className={`liquidGlass-dock rounded-3xl border border-white/40 p-5 ${n.read ? "" : "opacity-90"}`}>
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="font-medium">{n.title}</h3>

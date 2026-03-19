@@ -11,7 +11,7 @@ export default function LoginPage() {
         <Breadcrumbs items={[{ label: "Вход" }]} />
         <h1 className="mt-4 text-2xl font-semibold">Вход</h1>
         <p className="mt-2 text-sm text-zinc-600">Войдите в личный кабинет, чтобы видеть заказы и скидки.</p>
-        <Suspense fallback={<div className="glass-subtle mt-8 h-32 animate-pulse rounded-xl" />}>
+        <Suspense fallback={<div className="liquidGlass-dock mt-8 h-32 animate-pulse rounded-xl border border-white/40" />}>
           <LoginForm />
         </Suspense>
         <p className="mt-6 text-center text-sm text-zinc-600">

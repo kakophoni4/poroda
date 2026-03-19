@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
 
 export async function PATCH(
   request: NextRequest,
@@ -10,6 +11,12 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const body = await request.json();
+  if (body.title != null && String(body.title).trim().length > MAX_PRODUCT_TITLE_LENGTH) {
+    return NextResponse.json(
+      { error: `Название не длиннее ${MAX_PRODUCT_TITLE_LENGTH} символов` },
+      { status: 400 }
+    );
+  }
   const product = await prisma.product.update({
     where: { id },
     data: {
@@ -20,6 +27,8 @@ export async function PATCH(
       ...(body.price != null && { price: Math.round(body.price) }),
       ...(body.oldPrice != null && { oldPrice: body.oldPrice === "" ? null : Math.round(body.oldPrice) }),
       ...(body.isNew != null && { isNew: !!body.isNew }),
+      ...(body.isPromo != null && { isPromo: !!body.isPromo }),
+      ...(body.isBestseller != null && { isBestseller: !!body.isBestseller }),
       ...(body.skinTypes != null && { skinTypes: Array.isArray(body.skinTypes) ? body.skinTypes : [] }),
       ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
       ...(body.imageUrls !== undefined && {
@@ -34,6 +43,35 @@ export async function PATCH(
       ...(body.featuredSortOrder !== undefined && {
         featuredSortOrder: body.featuredSortOrder === null || body.featuredSortOrder === "" ? null : Math.max(0, Math.floor(Number(body.featuredSortOrder))),
       }),
+      ...(body.articleCode !== undefined && { articleCode: body.articleCode?.trim() || null }),
+      ...(body.problemText !== undefined && { problemText: body.problemText?.trim() || null }),
+      ...(body.careStageText !== undefined && { careStageText: body.careStageText?.trim() || null }),
+      ...(body.skinTypesLine !== undefined && { skinTypesLine: body.skinTypesLine?.trim() || null }),
+      ...(body.scientistsTitle !== undefined && { scientistsTitle: body.scientistsTitle?.trim() || null }),
+      ...(body.researchLinks !== undefined && {
+        researchLinks:
+          Array.isArray(body.researchLinks) && body.researchLinks.length > 0
+            ? body.researchLinks
+                .filter((x: { label?: string }) => x && typeof x.label === "string" && x.label.trim())
+                .map((x: { label: string; url?: string }) => ({
+                  label: String(x.label).trim(),
+                  ...(x.url?.trim() ? { url: String(x.url).trim() } : {}),
+                }))
+            : [],
+      }),
+      ...(body.forWhatText !== undefined && { forWhatText: body.forWhatText?.trim() || null }),
+      ...(body.howItWorksLines !== undefined && {
+        howItWorksLines:
+          Array.isArray(body.howItWorksLines) && body.howItWorksLines.length > 0
+            ? (body.howItWorksLines as string[]).map((s) => String(s).trim()).filter(Boolean)
+            : [],
+      }),
+      ...(body.howToUseText !== undefined && { howToUseText: body.howToUseText?.trim() || null }),
+      ...(body.inciText !== undefined && { inciText: body.inciText?.trim() || null }),
+      ...(body.volumeText !== undefined && { volumeText: body.volumeText?.trim() || null }),
+      ...(body.shelfLifeText !== undefined && { shelfLifeText: body.shelfLifeText?.trim() || null }),
+      ...(body.countryText !== undefined && { countryText: body.countryText?.trim() || null }),
+      ...(body.inStock !== undefined && { inStock: !!body.inStock }),
     },
   });
   return NextResponse.json(product);

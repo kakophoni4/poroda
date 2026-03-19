@@ -33,11 +33,11 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} className="mt-8 space-y-4">
       <div>
         <label htmlFor="login-email" className="block text-sm font-medium text-zinc-700">Email</label>
-        <input id="login-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
+        <input id="login-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
       </div>
       <div>
         <label htmlFor="login-password" className="block text-sm font-medium text-zinc-700">Пароль</label>
-        <input id="login-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="glass-input mt-1 w-full rounded-xl px-4 py-2.5" />
+        <input id="login-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button type="submit" className="w-full rounded-2xl bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800">Войти</button>

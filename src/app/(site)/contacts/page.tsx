@@ -1,3 +1,4 @@
+import AboutSubnav from "@/components/AboutSubnav";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
 
@@ -5,8 +6,9 @@ export default function ContactsPage() {
   return (
     <PageShell>
       <Container className="max-w-2xl">
-        <h1 className="text-3xl font-semibold">Контакты</h1>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-700">
+        <AboutSubnav activeHref="/contacts" />
+
+        <p className="mt-8 text-sm leading-relaxed text-zinc-700 sm:mt-10">
           Свяжитесь с нами по почте или телефону. По вопросам сотрудничества и дистрибуции — страница{" "}
           <a href="/partners" className="font-medium text-zinc-900 underline underline-offset-2 hover:no-underline">
             Партнёрам
@@ -45,7 +47,7 @@ export default function ContactsPage() {
           </address>
         </div>
 
-        <div className="mt-8 rounded-3xl border border-white/40 bg-white/5 p-6">
+        <div className="liquidGlass-dock mt-8 rounded-3xl border border-white/40 p-6">
           <div className="text-sm font-semibold text-zinc-900">Форма обратной связи</div>
           <div className="mt-2 text-sm text-zinc-600">
             На следующем шаге подключим отправку (например, в Telegram/Email).

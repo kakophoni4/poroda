@@ -1,3 +1,5 @@
+import type { ProductDetailFields } from "@/lib/product-detail";
+
 export type Product = {
   id: string;
   slug: string;
@@ -8,6 +10,8 @@ export type Product = {
   price: number;
   oldPrice?: number;
   isNew?: boolean;
+  isPromo?: boolean;
+  isBestseller?: boolean;
   skinTypes?: string[];
   imageUrl?: string;
   imageUrls?: string[];
@@ -17,7 +21,7 @@ export type Product = {
   components?: string;
   extraField1?: string;
   extraField2?: string;
-};
+} & ProductDetailFields;
 
 export type CatalogCategory = {
   slug: string;
@@ -129,36 +133,9 @@ export const products: Product[] = [
   },
 ];
 
-export type SortOption = "popular" | "sale" | "new" | "price_asc" | "price_desc";
-
-export const sortOptions: { value: SortOption; label: string }[] = [
-  { value: "popular", label: "популярные" },
-  { value: "sale", label: "акционные" },
-  { value: "new", label: "по новизне" },
-  { value: "price_asc", label: "от дешевых к дорогим" },
-  { value: "price_desc", label: "от дорогих к дешевым" },
-];
-
-/** Список URL фото товара: imageUrls или [imageUrl] или [fallback]. */
+/** Список URL фото позиции каталога: imageUrls или [imageUrl] или [fallback]. */
 export function getProductImages(p: Product, fallback?: string): string[] {
   if (p.imageUrls?.length) return p.imageUrls;
   if (p.imageUrl) return [p.imageUrl];
   return fallback ? [fallback] : [];
-}
-
-export function sortProducts(products: Product[], sort: SortOption): Product[] {
-  const arr = [...products];
-  switch (sort) {
-    case "price_asc":
-      return arr.sort((a, b) => a.price - b.price);
-    case "price_desc":
-      return arr.sort((a, b) => b.price - a.price);
-    case "new":
-      return arr.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-    case "sale":
-      return arr.sort((a, b) => (b.oldPrice ? 1 : 0) - (a.oldPrice ? 1 : 0));
-    case "popular":
-    default:
-      return arr;
-  }
 }

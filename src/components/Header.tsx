@@ -4,149 +4,214 @@ import { useState, useRef, useEffect } from "react";
 import Container from "./Container";
 import Logo from "./Logo";
 import Link from "next/link";
-import { categories } from "@/lib/catalog-data";
+import { headerSloganLines } from "@/lib/site-data";
 
-const mainNav = [
-  { href: "/catalog", label: "Каталог", hasDropdown: true },
-  { href: "/philosophy", label: "Философия", hasDropdown: false },
-  { href: "/about", label: "О бренде", hasDropdown: false },
-  { href: "/blog", label: "Блог", hasDropdown: false },
-  { href: "/faq", label: "FAQ", hasDropdown: false },
-  { href: "/partners", label: "Партнёрам", hasDropdown: false },
-  { href: "/contacts", label: "Контакты", hasDropdown: false },
+const aboutDropdownLinks = [
+  { href: "/about", label: "О бренде" },
+  { href: "/philosophy", label: "Наша философия" },
+  { href: "/blog", label: "Блог" },
+  { href: "/contacts", label: "Контакты" },
 ];
 
+const catalogFilterLinks = [
+  { href: "/catalog", label: "Вся продукция" },
+  { href: "/catalog?filter=promo", label: "Акции" },
+  { href: "/catalog?filter=new", label: "Новинки" },
+  { href: "/catalog?filter=bestseller", label: "Бестселлеры" },
+];
+
+const mainNav = [
+  { href: "/catalog", label: "Вся продукция", hasDropdown: true, dropdownType: "catalog" as const, dropdownLinks: catalogFilterLinks },
+  { href: "/about", label: "О нас", hasDropdown: true, dropdownType: "about" as const, dropdownLinks: aboutDropdownLinks },
+  { href: "/faq", label: "FAQ", hasDropdown: false },
+  { href: "/partners", label: "Партнёрам", hasDropdown: false },
+];
+
+/** Пункты с подменю: без стрелки — пунктирное подчёркивание как намёк на раскрытие */
+const navDropdownLinkClass =
+  "inline-flex items-center rounded-xl px-3 py-2 text-base font-medium text-zinc-800 underline decoration-dotted decoration-zinc-500/80 underline-offset-[6px] hover:bg-white/40 hover:text-zinc-900 hover:decoration-zinc-800 sm:text-[1.05rem]";
+const navPlainClass =
+  "rounded-xl px-3 py-2 text-base font-medium text-zinc-800 hover:bg-white/40 hover:text-zinc-900 sm:text-[1.05rem]";
+const mobileDropdownBtnClass =
+  "glass-subtle inline-flex shrink-0 items-center rounded-xl border border-white/45 px-3.5 py-2 text-sm font-semibold text-zinc-800 shadow-sm underline decoration-dotted decoration-zinc-500/80 underline-offset-[5px] transition hover:bg-white/45";
+/** Пункты выпадающих «О нас» / «Вся продукция» — только текст, без плашек */
+const dropdownItemClass =
+  "block rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 underline decoration-transparent underline-offset-[6px] transition hover:text-zinc-900 hover:decoration-zinc-400";
+
 export default function Header() {
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<"catalog" | "about" | null>(null);
+  const [mobileOpen, setMobileOpen] = useState<"catalog" | "about" | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setCatalogOpen(false);
+    function handleClickOutside(e: Event) {
+      const t = e.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(t)) {
+        setOpenDropdown(null);
+      }
+      if (mobileNavRef.current && !mobileNavRef.current.contains(t)) {
+        setMobileOpen(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/30">
-      <div className="liquidGlass-dock w-full overflow-visible">
-        <Container className="overflow-visible">
-          <div className="flex h-16 items-center justify-between gap-4 overflow-visible">
-          <Link href="/" className="shrink-0" aria-label="На главную">
-            <Logo />
-          </Link>
-
-          <nav className="hidden items-center gap-1 overflow-visible lg:flex" ref={dropdownRef}>
-            {mainNav.map((n) =>
-              n.hasDropdown ? (
-                <div
-                  key={n.href}
-                  className="relative"
-                  onMouseEnter={() => setCatalogOpen(true)}
-                  onMouseLeave={() => setCatalogOpen(false)}
-                >
-                  <Link
-                    href={n.href}
-                    className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
-                  >
-                    {n.label}
-                    <svg className="h-4 w-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </Link>
-                  {catalogOpen && (
-                    <div className="absolute left-0 top-full z-[100] pt-1">
-                      <div className="liquidGlass-dock min-w-[220px] rounded-2xl border border-white/40 py-2">
-                        <Link
-                          href="/catalog"
-                          className="block px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-                        >
-                          Весь каталог
-                        </Link>
-                        {categories.map((c) => (
-                          <Link
-                            key={c.slug}
-                            href={`/catalog?category=${c.slug}`}
-                            className="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
-                          >
-                            {c.title} ({c.productCount})
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
+    <header id="site-header-root" className="sticky top-0 z-50">
+      <div className="liquidGlass-dock w-full overflow-visible border-b border-white/40 shadow-sm">
+        <Container className="!px-3 sm:!px-4 lg:!px-6">
+          {/* Верх: слоган, лого, кнопки — затем навигация сразу под лого */}
+          <div className="flex flex-col gap-0">
+            <div className="relative flex min-h-[2.5rem] shrink-0 items-center py-1">
+              <p className="z-[1] max-w-[44%] -translate-x-1 text-left text-[11px] leading-snug text-zinc-700 sm:-translate-x-2 sm:max-w-[40%] sm:text-xs sm:leading-tight md:text-sm lg:-translate-x-3">
+                {headerSloganLines[0]}
+                <br />
+                {headerSloganLines[1]}
+              </p>
+              <Link
+                href="/"
+                className="absolute left-1/2 top-1/2 z-[2] flex -translate-x-1/2 -translate-y-1/2"
+                aria-label="На главную"
+              >
+                <Logo />
+              </Link>
+              <div className="ml-auto flex shrink-0 translate-x-1 flex-col items-end gap-1.5 sm:flex-row sm:translate-x-2 sm:items-center sm:gap-2 lg:translate-x-3">
                 <Link
-                  key={n.href}
-                  href={n.href}
-                  className="rounded-lg px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
+                  href="/account"
+                  className="glass-subtle shrink-0 rounded-2xl border border-white/45 px-2.5 py-1.5 text-center text-[10px] font-semibold leading-tight text-zinc-900 shadow-sm transition hover:bg-white/45 sm:px-3 sm:text-xs sm:leading-normal md:px-4 md:py-2 md:text-sm"
                 >
-                  {n.label}
+                  Личный кабинет
                 </Link>
-              )
-            )}
-          </nav>
+                <a
+                  href="https://t.me/porodacosmetics"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-2xl bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-zinc-800 sm:px-4 sm:py-2 sm:text-sm"
+                >
+                  Telegram
+                </a>
+              </div>
+            </div>
+            {/* Одна тёмная линия на всю ширину контейнера (вместо двух бледных border-t) */}
+            <div className="w-full shrink-0 border-t-2 border-zinc-900/25" aria-hidden />
 
-          <div className="flex items-center gap-2">
-            <Link
-              href="/account"
-              className="liquid-glass glass-btn hidden rounded-2xl px-4 py-2 text-sm font-medium sm:inline-flex"
-            >
-              Кабинет
-            </Link>
-            <Link
-              href="/contacts"
-              className="rounded-2xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-            >
-              Написать
-            </Link>
-            <button
-              type="button"
-              className="rounded-2xl p-2 lg:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            {/* Десктоп: меню под линией */}
+            <div className="hidden min-h-0 shrink-0 items-center justify-center pt-1 pb-0.5 lg:flex">
+              <nav className="flex flex-wrap justify-center gap-1 sm:gap-2" ref={dropdownRef}>
+                {mainNav.map((n) =>
+                  n.hasDropdown && "dropdownType" in n ? (
+                    <div
+                      key={n.href}
+                      className="relative"
+                      onMouseEnter={() => setOpenDropdown(n.dropdownType as "catalog" | "about")}
+                      onMouseLeave={() => setOpenDropdown(null)}
+                    >
+                      <Link
+                        href={n.href}
+                        className={navDropdownLinkClass}
+                        aria-haspopup="true"
+                        aria-expanded={openDropdown === n.dropdownType}
+                      >
+                        {n.label}
+                      </Link>
+                      {openDropdown === n.dropdownType && "dropdownLinks" in n && (
+                        <div className="absolute left-1/2 top-full z-[100] -translate-x-1/2 pt-1">
+                          <div className="liquidGlass-dock min-w-[220px] rounded-2xl border border-white/40 p-2 shadow-lg space-y-0.5">
+                            {(n.dropdownLinks as { href: string; label: string }[]).map((link) => (
+                              <Link key={link.href} href={link.href} className={dropdownItemClass}>
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link key={n.href} href={n.href} className={navPlainClass}>
+                      {n.label}
+                    </Link>
+                  )
+                )}
+              </nav>
+            </div>
+          </div>
+
+          {/* Мобилка: та же линия сверху уже есть; второй border не дублируем */}
+          <div ref={mobileNavRef} className="relative lg:hidden">
+            <nav
+              className="flex flex-wrap justify-center gap-2 py-2.5"
               aria-label="Меню"
             >
-              {mobileMenuOpen ? (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-out lg:hidden ${mobileMenuOpen ? "max-h-[400px] pb-3" : "max-h-0"}`}
-        >
-          <div className="flex flex-col gap-1 border-t border-white/30 pt-3">
-            <Link href="/catalog" className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-900">
-              Каталог
-            </Link>
-            {categories.slice(0, 4).map((c) => (
-              <Link
-                key={c.slug}
-                href={`/catalog?category=${c.slug}`}
-                className="rounded-lg px-5 py-2 text-sm text-zinc-600"
+              <button
+                type="button"
+                onClick={() => setMobileOpen((m) => (m === "catalog" ? null : "catalog"))}
+                className={`${mobileDropdownBtnClass} ${mobileOpen === "catalog" ? "ring-2 ring-zinc-900/25 decoration-zinc-900" : ""}`}
+                aria-expanded={mobileOpen === "catalog"}
+                aria-haspopup="true"
               >
-                {c.title}
+                Вся продукция
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileOpen((m) => (m === "about" ? null : "about"))}
+                className={`${mobileDropdownBtnClass} ${mobileOpen === "about" ? "ring-2 ring-zinc-900/25 decoration-zinc-900" : ""}`}
+                aria-expanded={mobileOpen === "about"}
+                aria-haspopup="true"
+              >
+                О нас
+              </button>
+              <Link
+                href="/faq"
+                onClick={() => setMobileOpen(null)}
+                className="glass-subtle shrink-0 rounded-xl border border-white/45 px-3.5 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-white/45"
+              >
+                FAQ
               </Link>
-            ))}
-            {mainNav.filter((n) => !n.hasDropdown).map((n) => (
-              <Link key={n.href} href={n.href} className="rounded-lg px-3 py-2 text-sm text-zinc-700">
-                {n.label}
+              <Link
+                href="/partners"
+                onClick={() => setMobileOpen(null)}
+                className="glass-subtle shrink-0 rounded-xl border border-white/45 px-3.5 py-2 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-white/45"
+              >
+                Партнёрам
               </Link>
-            ))}
+            </nav>
+
+            {mobileOpen && (
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-[100] cursor-default bg-transparent"
+                  aria-label="Закрыть меню"
+                  onClick={() => setMobileOpen(null)}
+                />
+                {/* fixed + центр: как выпадашка на ПК, страница не сдвигается */}
+                <div
+                  className="fixed left-1/2 top-[max(5.25rem,env(safe-area-inset-top,0px)+4.5rem)] z-[110] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 sm:max-w-md"
+                  role="menu"
+                >
+                  <div className="liquidGlass-dock max-h-[min(70vh,calc(100dvh-7rem))] overflow-y-auto rounded-2xl border border-white/40 p-2 shadow-xl space-y-1">
+                    {(mobileOpen === "catalog" ? catalogFilterLinks : aboutDropdownLinks).map((link) => (
+                      <Link
+                        key={link.href + link.label}
+                        href={link.href}
+                        role="menuitem"
+                        className={`${dropdownItemClass} px-2 py-2.5 active:opacity-70`}
+                        onClick={() => setMobileOpen(null)}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
         </Container>
       </div>
     </header>

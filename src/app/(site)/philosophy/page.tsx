@@ -1,3 +1,4 @@
+import AboutSubnav from "@/components/AboutSubnav";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
 
@@ -5,11 +6,10 @@ export default function PhilosophyPage() {
   return (
     <PageShell>
       <Container className="max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Философия PORODA</h1>
-        <p className="mt-2 text-lg text-zinc-600">Благородство начинается с честности.</p>
+        <AboutSubnav activeHref="/philosophy" />
 
         {/* Один блок — расширяется при заходе на страницу */}
-        <div className="animate-expand-block mt-10">
+        <div className="animate-expand-block mt-8 sm:mt-10">
           <div className="liquidGlass-dock rounded-3xl border border-white/40 p-8 sm:p-10">
             <div className="space-y-6 text-base leading-relaxed text-zinc-700 sm:text-lg sm:leading-loose">
               <p>
@@ -49,7 +49,7 @@ export default function PhilosophyPage() {
             href="/catalog"
             className="rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
           >
-            Перейти в каталог
+            Вся продукция
           </a>
         </nav>
       </Container>

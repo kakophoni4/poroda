@@ -1,11 +1,32 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
 :root {
   color-scheme: light;
 }
 
 html {
   scroll-behavior: smooth;
+  /* Уже полоса прокрутки — чуть больше места для контента, как у «тонкого» скролла */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(113, 113, 122, 0.4) transparent;
+}
+
+html::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.4);
+  border-radius: 6px;
+}
+
+html::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 html, body {
@@ -13,7 +34,8 @@ html, body {
 }
 
 body {
-  @apply text-zinc-900 antialiased;
+  @apply font-sans text-zinc-900 antialiased font-medium;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
 
 /* Неброские “премиальные” линии вместо фото */
@@ -44,6 +66,28 @@ body {
 }
 .animate-scale-in {
   animation: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Мягкое появление контента при переходе по ссылкам (см. PageTransition) */
+@keyframes page-route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page-route-enter {
+  animation: page-route-enter 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-route-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 .animation-delay-100 { animation-delay: 0.1s; }
 .animation-delay-200 { animation-delay: 0.2s; }
@@ -120,7 +164,27 @@ body {
 .glass-input::placeholder {
   color: rgba(0, 0, 0, 0.4);
 }
-/* Liquid Glass (macos-style): inset-блик + SVG-искажение (filter), фон — твоё фото */
+/* Поля ввода в стиле «жидкого стекла» (сильный блюр + кайма, без displacement на тексте) */
+.liquid-input {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(36px);
+  -webkit-backdrop-filter: blur(36px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 2px 2px 0 -2px rgba(255, 255, 255, 0.55);
+}
+.liquid-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+.liquid-input:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(24, 24, 27, 0.12),
+    inset 0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 2px 2px 0 -2px rgba(255, 255, 255, 0.6);
+}
+/* Жидкое стекло: SVG displacement + блики (фильтры в layout.tsx) */
 .liquid-glass {
   position: relative;
   overflow: hidden;
@@ -135,7 +199,7 @@ body {
   overflow: hidden;
   box-shadow:
     inset 2px 2px 0 -2px rgba(255, 255, 255, 0.7),
-    inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+    inset 0 0 3px 1px rgba(255, 255, 255, 0.65);
   pointer-events: none;
 }
 .liquid-glass::after {
@@ -143,7 +207,7 @@ body {
   position: absolute;
   z-index: -1;
   inset: 0;
-  border-radius: inherit; /* наследует от элемента (rounded-2xl и т.д.) */
+  border-radius: inherit;
   -webkit-backdrop-filter: blur(0px);
   backdrop-filter: blur(0px);
   filter: url(#container-glass);
@@ -154,17 +218,22 @@ body {
   position: relative;
   z-index: 1;
 }
-/* Выдвижная панель (каталог): сильное размытие — сквозь стекло не разобрать текст */
 .liquid-glass.glass {
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
 }
 
-/* Панель каталога: liquid glass dock-style (effect → tint → shine) для проверки */
+/* Dock-style панели: distortion → оттенок → блик; тёмная обводка слабее светлой каймы */
 .liquidGlass-dock {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border: 1px solid rgba(24, 24, 27, 0.11) !important;
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.08);
 }
 .liquidGlass-dock::before {
   content: "";
@@ -187,14 +256,13 @@ body {
   background: rgba(255, 255, 255, 0.5);
   box-shadow:
     inset 2px 2px 1px 0 rgba(255, 255, 255, 0.5),
-    inset -1px -1px 1px 1px rgba(255, 255, 255, 0.5);
+    inset -1px -1px 1px 1px rgba(255, 255, 255, 0.45);
   pointer-events: none;
 }
 .liquidGlass-dock > * {
   position: relative;
   z-index: 2;
 }
-/* В шапке выпадающий каталог не должен обрезаться */
 header .liquidGlass-dock {
   overflow: visible !important;
 }
@@ -202,20 +270,21 @@ header .liquidGlass-dock {
   border: none;
   outline: none;
 }
-/* Кнопки со стеклом: размытие фона, сквозь не читается */
 .liquid-glass.glass-btn {
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(24, 24, 27, 0.1) !important;
 }
 .liquid-glass.glass-btn::before {
-  background-color: rgb(255 255 255 / 25%);
+  background-color: rgb(255 255 255 / 22%);
 }
 .liquid-glass.glass-btn::after {
   filter: url(#btn-glass);
+  display: block;
 }
 .liquid-glass.glass-btn:hover::before {
-  background-color: rgb(255 255 255 / 35%);
+  background-color: rgb(255 255 255 / 32%);
 }
 .liquid-glass.glass-btn:hover {
   background: rgba(255, 255, 255, 0.55);

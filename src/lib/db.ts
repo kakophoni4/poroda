@@ -5,14 +5,23 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-/** Конфиг для pg: для Supabase включаем SSL без проверки сертификата (избегаем "self-signed certificate"). */
-function getPoolConfig(): { connectionString: string; ssl?: { rejectUnauthorized: false } } {
+/** Конфиг для pg: SSL для Supabase; для удалённой БД — таймаут подключения. */
+function getPoolConfig(): { connectionString: string; ssl?: { rejectUnauthorized: false }; connectionTimeoutMillis?: number } {
   loadEnv({ path: path.join(process.cwd(), ".env") });
-  const connectionString =
+  let connectionString =
     process.env.DATABASE_URL?.trim() ||
     "postgresql://postgres:qwe@localhost:5432/poroda";
+  const isRemote = !/localhost|127\.0\.0\.1/.test(connectionString);
+  if (isRemote && !connectionString.includes("connect_timeout=")) {
+    const sep = connectionString.includes("?") ? "&" : "?";
+    connectionString = `${connectionString}${sep}connect_timeout=25`;
+  }
   const needsSsl = (connectionString.includes("supabase") || connectionString.includes("pooler.")) && !connectionString.includes("sslmode=");
-  return needsSsl ? { connectionString, ssl: { rejectUnauthorized: false } } : { connectionString };
+  const config: { connectionString: string; ssl?: { rejectUnauthorized: false }; connectionTimeoutMillis?: number } = needsSsl
+    ? { connectionString, ssl: { rejectUnauthorized: false } }
+    : { connectionString };
+  if (isRemote) config.connectionTimeoutMillis = 25000;
+  return config;
 }
 
 function createPrisma(): PrismaClient {
@@ -29,6 +38,14 @@ function getPrisma(): PrismaClient {
 // Ленивая инициализация: клиент создаётся при первом обращении (когда Next уже подгрузил .env)
 export const prisma = new Proxy({} as PrismaClient, {
   get(_, prop: string) {
-    return (getPrisma() as unknown as Record<string, unknown>)[prop];
+    const client = getPrisma() as unknown as Record<string, unknown>;
+    const value = client[prop];
+    // Если делегат модели отсутствует (устаревший кэш после prisma generate), сбрасываем кэш
+    if (value === undefined && typeof prop === "string" && /^[a-z]/.test(prop)) {
+      delete (globalForPrisma as { prisma?: PrismaClient }).prisma;
+      const fresh = getPrisma() as unknown as Record<string, unknown>;
+      return fresh[prop];
+    }
+    return value;
   },
 });

@@ -31,7 +31,7 @@ const items: { q: string; a: string }[] = [
   },
   {
     q: "Можно ли вернуть продукцию?",
-    a: "Согласно законодательству РФ, косметические средства, кремы и другие товары из категории косметики возврату и обмену не подлежат.",
+    a: "Согласно законодательству РФ, косметические средства, кремы и другая продукция из категории косметики возврату и обмену не подлежат.",
   },
   {
     q: "Могут ли продукты вызвать аллергию?",
@@ -85,7 +85,7 @@ export default function FaqPage() {
   return (
     <PageShell>
       <Container>
-        <h1 className="text-3xl font-semibold">FAQ</h1>
+        <h1 className="text-3xl font-semibold">Частые вопросы пользователей</h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-700">
           Ответы на частые вопросы о заказе, доставке, составе и использовании продукции PORODA.
         </p>
@@ -94,7 +94,7 @@ export default function FaqPage() {
           {items.map((it, index) => (
             <div
               key={it.q}
-              className="glass-subtle overflow-hidden rounded-2xl border border-white/40 transition-shadow hover:shadow-md"
+              className="liquidGlass-dock overflow-hidden rounded-2xl border border-white/40 transition-shadow hover:shadow-md"
             >
               <button
                 type="button"

@@ -107,7 +107,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
               </div>
             </div>
             <div className="mt-4 text-xs text-zinc-500">
-              Товары: {editing.items.map((i) => `${i.title} × ${i.quantity}`).join(", ")}
+              Продукция: {editing.items.map((i) => `${i.title} × ${i.quantity}`).join(", ")}
             </div>
             <div className="mt-6 flex gap-2">
               <button type="button" onClick={saveEdit} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">Сохранить</button>

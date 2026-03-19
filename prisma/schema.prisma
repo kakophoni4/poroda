@@ -47,6 +47,8 @@ model Product {
   price        Int
   oldPrice     Int?
   isNew        Boolean  @default(false)
+  isPromo      Boolean  @default(false) // акции
+  isBestseller Boolean  @default(false) // бестселлеры
   skinTypes    String[] @default([])
   sortOrder    Int      @default(0)
   featuredSortOrder Int? // если задан — товар показывается на главной в этом порядке; иначе на главной рандом
@@ -58,6 +60,20 @@ model Product {
   components   String?  // компоненты
   extraField1  String?  // тестовое текстовое поле 1
   extraField2  String?  // тестовое текстовое поле 2
+  articleCode  String?  // артикул, напр. SP2081
+  problemText  String?  @db.Text // Проблема: ...
+  careStageText String? @db.Text // Этап ухода
+  skinTypesLine String? @db.Text // Тип кожи (строка для карточки)
+  scientistsTitle String? @default("Что говорят ученые?")
+  researchLinks Json?   // [{ "label": "...", "url": "https://..." }]
+  forWhatText  String?  @db.Text // блок «Для чего?»
+  howItWorksLines Json? // массив строк — пункты «Как работает?»
+  howToUseText String?  @db.Text
+  inciText     String?  @db.Text // INCI / из чего состоит
+  volumeText   String?  // Объём: 30 мл
+  shelfLifeText String? // Срок годности
+  countryText  String?  // Страна производства
+  inStock      Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   orderItems   OrderItem[]
@@ -155,4 +171,66 @@ model PageView {
   path      String
   userId    String?
   createdAt DateTime @default(now())
+}
+
+/// Акционные баннеры на главной (карусель на всю ширину экрана)
+model HomePromoBanner {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  linkUrl     String   @default("")
+  buttonText  String   @default("")
+  buttonColor String   @default("#18181b")
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Карточки «Выберите вашу проблему» под баннерами: фото, заголовок, ссылка в каталог (с фильтром)
+model HomeConcernCard {
+  id           String   @id @default(cuid())
+  title        String
+  imageUrl     String
+  catalogQuery String   @default("") // например category=serums → ссылка /catalog?category=serums
+  sortOrder    Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Квиз подбора: вопрос (заголовок), ответы ведут в каталог/товар или к следующему вопросу
+model QuizQuestion {
+  id               String        @id @default(cuid())
+  title            String        // текст в шапке, напр. "Выберите тип вашей кожи"
+  sortOrder        Int           @default(0)
+  active           Boolean       @default(true)
+  answers          QuizAnswer[]  @relation("QuizQuestionAnswers")
+  incomingAnswers  QuizAnswer[]  @relation("QuizAnswerNext")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model QuizAnswer {
+  id             String        @id @default(cuid())
+  questionId     String
+  question       QuizQuestion   @relation("QuizQuestionAnswers", fields: [questionId], references: [id], onDelete: Cascade)
+  label          String        // текст варианта, напр. "Сухая"
+  linkUrl        String        @default("") // куда ведёт: /catalog?skin=dry
+  nextQuestionId String?
+  nextQuestion   QuizQuestion?  @relation("QuizAnswerNext", fields: [nextQuestionId], references: [id], onDelete: SetNull)
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+/// Статьи/исследования на главной (блок «Исследования косметологии»): название, ссылка, описание
+model HomeArticle {
+  id          String   @id @default(cuid())
+  title       String   // название статьи
+  linkUrl     String   @default("") // ссылка при клике
+  description String  @default("") // описание (краткий текст на карточке)
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

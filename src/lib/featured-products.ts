@@ -78,3 +78,40 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
     }));
   }
 }
+
+function mapDbProduct(
+  p: { id: string; slug: string; title: string; shortDesc: string | null; price: number; imageUrl: string | null; category: { slug: string } }
+): FeaturedProduct {
+  const defaultImg = (slug: string) => `/images/poroda/${categoryToFolder[slug] ?? 1}/1.jpg`;
+  return {
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    shortDesc: p.shortDesc ?? undefined,
+    price: p.price,
+    priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+    imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
+  };
+}
+
+/** Вся продукция для блока «Наша продукция» на главной (карусель) */
+export async function getAllProductsForHome(): Promise<FeaturedProduct[]> {
+  try {
+    const all = await prisma.product.findMany({
+      include: { category: { select: { slug: true, sortOrder: true } } },
+      orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { title: "asc" }],
+    });
+    if (all.length > 0) return all.map(mapDbProduct);
+    throw new Error("no products");
+  } catch {
+    return staticProducts.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      shortDesc: p.shortDesc,
+      price: p.price,
+      priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+      imageUrl: p.imageUrl ?? `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`,
+    }));
+  }
+}
