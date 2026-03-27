@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { useSiteCopy } from "@/context/SiteCopyContext";
 
 const MAX_LINE_TITLE_IN_DOCK = 52;
 /** Fallback, если transitionend не пришёл (редкие браузеры / reduced motion) */
@@ -10,6 +11,7 @@ const CART_UNMOUNT_FALLBACK_MS = 520;
 
 /** Плавающая кнопка корзины + модальное окно по центру экрана */
 export default function CartDock() {
+  const t = useSiteCopy();
   const { lines, totalQuantity, subtotal, setQuantity, removeProduct, hydrated } = useCart();
   const [open, setOpen] = useState(false);
   /** Панель в DOM для анимации закрытия */
@@ -79,10 +81,28 @@ export default function CartDock() {
 
   useEffect(() => {
     if (!panelMounted) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyPaddingRight: body.style.paddingRight,
+    };
+    const scrollbarW = window.innerWidth - html.clientWidth;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
+    if (scrollbarW > 0) body.style.paddingRight = `${scrollbarW}px`;
+
     return () => {
-      document.body.style.overflow = prev;
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+      body.style.paddingRight = prev.bodyPaddingRight;
     };
   }, [panelMounted]);
 
@@ -133,7 +153,9 @@ export default function CartDock() {
           className="glass-subtle pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl border border-white/45 px-3 py-2.5 text-zinc-900 shadow-md transition-[transform,background-color,box-shadow] duration-200 ease-out hover:bg-white/45 active:scale-[0.98]"
           aria-expanded={open}
           aria-haspopup="dialog"
-          aria-label={totalQuantity > 0 ? `Корзина, ${totalQuantity} шт.` : "Корзина"}
+          aria-label={
+            totalQuantity > 0 ? t("aria.cart_with_qty").replace("{n}", String(totalQuantity)) : t("aria.cart_empty")
+          }
         >
           <span className="relative inline-flex">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
@@ -155,7 +177,7 @@ export default function CartDock() {
               {subtotal.toLocaleString("ru-RU")} ₽
             </span>
           )}
-          <span className="text-[10px] font-medium text-zinc-500">Корзина</span>
+          <span className="text-[10px] font-medium text-zinc-500">{t("cart.label")}</span>
         </button>
       </div>
 
@@ -163,12 +185,12 @@ export default function CartDock() {
         <>
           <button
             type="button"
-            className={`fixed inset-0 z-[200] bg-black/35 ${backdropTransitionClass} ${
+            className={`fixed inset-0 z-[200] touch-none bg-black/40 ${backdropTransitionClass} ${
               panelVisible
                 ? "opacity-100 backdrop-blur-[2px]"
                 : "pointer-events-none opacity-0 backdrop-blur-none"
             }`}
-            aria-label="Закрыть корзину"
+            aria-label={t("aria.close_cart_backdrop")}
             onClick={close}
           />
           <div
@@ -176,7 +198,7 @@ export default function CartDock() {
             role="presentation"
           >
             <div
-              className={`glass-card pointer-events-auto flex max-h-[min(85dvh,32rem)] w-[min(100%,28rem)] max-w-md flex-col overflow-hidden rounded-3xl border border-white/50 shadow-2xl ${panelTransitionClass} ${
+              className={`pointer-events-auto flex max-h-[min(85dvh,32rem)] w-[min(100%,28rem)] max-w-md flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl ${panelTransitionClass} ${
                 panelVisible
                   ? "translate-y-0 scale-100 opacity-100 motion-reduce:translate-y-0 motion-reduce:scale-100"
                   : "pointer-events-none translate-y-3 scale-[0.97] opacity-0 motion-reduce:translate-y-0 motion-reduce:scale-100"
@@ -187,15 +209,15 @@ export default function CartDock() {
               aria-labelledby="cart-dock-title"
               onTransitionEnd={onPanelTransitionEnd}
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/40 px-4 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 py-3">
                 <h2 id="cart-dock-title" className="text-lg font-semibold text-zinc-900">
-                  Корзина
+                  {t("cart.title")}
                 </h2>
                 <button
                   type="button"
                   onClick={close}
-                  className="rounded-xl p-2 text-zinc-600 transition-[background-color,color,transform] duration-200 ease-out hover:bg-white/40 hover:text-zinc-900 active:scale-95"
-                  aria-label="Закрыть"
+                  className="rounded-xl p-2 text-zinc-600 transition-[background-color,color,transform] duration-200 ease-out hover:bg-zinc-100 hover:text-zinc-900 active:scale-95"
+                  aria-label={t("aria.close")}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -203,7 +225,7 @@ export default function CartDock() {
                 </button>
               </div>
               {/* Стабильная минимальная высота — меньше скачка при появлении контента после гидратации */}
-              <div className="min-h-[min(12rem,40dvh)] min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 transition-opacity duration-200">
+              <div className="min-h-[min(12rem,40dvh)] min-w-0 flex-1 overflow-y-auto overscroll-contain bg-white px-4 py-3 transition-opacity duration-200">
                 {!hydrated ? (
                   <div className="space-y-3" aria-busy="true">
                     <div className="h-4 w-2/3 animate-pulse rounded-lg bg-zinc-200/60" />
@@ -211,13 +233,13 @@ export default function CartDock() {
                     <div className="h-20 animate-pulse rounded-2xl bg-zinc-200/40" />
                   </div>
                 ) : lines.length === 0 ? (
-                  <p className="text-sm text-zinc-600">Пока пусто. Добавьте позиции из каталога или с главной.</p>
+                  <p className="text-sm text-zinc-600">{t("cart.empty")}</p>
                 ) : (
                   <ul className="space-y-3">
                     {lines.map((line) => (
                       <li
                         key={line.productId}
-                        className="glass-subtle rounded-2xl border border-white/45 p-3 text-sm transition-shadow duration-200"
+                        className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-sm shadow-sm transition-shadow duration-200"
                       >
                         <div className="flex gap-2">
                           <div className="min-w-0 flex-1">
@@ -240,19 +262,19 @@ export default function CartDock() {
                           <button
                             type="button"
                             onClick={() => removeProduct(line.productId)}
-                            className="shrink-0 self-start rounded-lg px-2 py-1 text-[11px] text-zinc-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-700"
-                            title="Удалить позицию"
+                            className="shrink-0 self-start rounded-lg px-2 py-1 text-[11px] font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-2 transition-colors duration-150 hover:bg-red-50 hover:text-red-700 hover:decoration-red-400"
+                            title={t("cart.remove_title")}
                           >
-                            Удалить
+                            {t("cart.remove")}
                           </button>
                         </div>
-                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/35 pt-3">
-                          <span className="text-xs font-medium text-zinc-600">Количество</span>
-                          <div className="glass-subtle flex items-center gap-1 rounded-xl border border-white/45 p-0.5">
+                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-200 pt-3">
+                          <span className="text-xs font-medium text-zinc-600">{t("cart.qty_label")}</span>
+                          <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-0.5 shadow-sm">
                             <button
                               type="button"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg font-medium text-zinc-800 transition-[background-color,transform] duration-150 ease-out hover:bg-white/45 active:scale-95"
-                              aria-label="Уменьшить количество"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg font-medium text-zinc-800 transition-[background-color,transform] duration-150 ease-out hover:bg-zinc-100 active:scale-95"
+                              aria-label={t("aria.qty_less")}
                               onClick={() => setQuantity(line.productId, line.quantity - 1)}
                             >
                               −
@@ -262,8 +284,8 @@ export default function CartDock() {
                             </span>
                             <button
                               type="button"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg font-medium text-zinc-800 transition-[background-color,transform] duration-150 ease-out hover:bg-white/45 active:scale-95 disabled:opacity-40"
-                              aria-label="Увеличить количество"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg font-medium text-zinc-800 transition-[background-color,transform] duration-150 ease-out hover:bg-zinc-100 active:scale-95 disabled:opacity-40"
+                              aria-label={t("aria.qty_more")}
                               disabled={line.quantity >= 99}
                               onClick={() => setQuantity(line.productId, line.quantity + 1)}
                             >
@@ -277,9 +299,9 @@ export default function CartDock() {
                 )}
               </div>
               {hydrated && lines.length > 0 && (
-                <div className="shrink-0 border-t border-white/40 px-4 py-4 transition-opacity duration-200">
+                <div className="shrink-0 border-t border-zinc-200 bg-white px-4 py-4 transition-opacity duration-200">
                   <p className="flex justify-between text-sm font-medium text-zinc-800">
-                    <span>Итого</span>
+                    <span>{t("cart.subtotal")}</span>
                     <span className="tabular-nums">{subtotal.toLocaleString("ru-RU")} ₽</span>
                   </p>
                   <Link
@@ -287,14 +309,14 @@ export default function CartDock() {
                     onClick={close}
                     className="mt-3 flex w-full items-center justify-center rounded-2xl bg-zinc-900 py-3 text-sm font-semibold text-white shadow-md transition-[background-color,transform,box-shadow] duration-200 ease-out hover:bg-zinc-800 active:scale-[0.99]"
                   >
-                    Оформить заказ
+                    {t("cart.checkout")}
                   </Link>
                   <Link
                     href="/catalog"
                     onClick={close}
-                    className="mt-2 block text-center text-sm text-zinc-600 transition-colors duration-150 hover:text-zinc-900"
+                    className="mt-2 block text-center text-sm font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 transition-colors duration-150 hover:text-zinc-900 hover:decoration-zinc-500"
                   >
-                    Продолжить выбор
+                    {t("cart.continue")}
                   </Link>
                 </div>
               )}

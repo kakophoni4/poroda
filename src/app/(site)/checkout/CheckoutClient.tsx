@@ -1,12 +1,17 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import CheckoutSpinWheel from "@/components/CheckoutSpinWheel";
+import PhoneInput from "@/components/PhoneInput";
 import type { Product } from "@/lib/catalog-data";
 import { useCart } from "@/context/CartContext";
+import { useSiteCopy } from "@/context/SiteCopyContext";
+import { isRuPhoneComplete } from "@/lib/phone-ru";
 
 export default function CheckoutClient({ products }: { products: Product[] }) {
+  const t = useSiteCopy();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { lines, addProduct, setQuantity, removeProduct, clearCart, hydrated } = useCart();
@@ -31,14 +36,17 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+7");
   const [address, setAddress] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [payMethod, setPayMethod] = useState<"online" | "on_delivery">("online");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   /** После clearCart() сумма в корзине обнуляется — сохраняем для экрана оплаты */
   const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
+  /** Итог с учётом промокода (превью по API) */
+  const [promoPreviewTotal, setPromoPreviewTotal] = useState<number | null>(null);
 
   const cartRows = useMemo(() => {
     return lines.map((line) => {
@@ -55,9 +63,43 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
     [cartRows]
   );
 
+  const applyWheelCode = useCallback((code: string) => {
+    setPromoCode(code);
+  }, []);
+
+  useEffect(() => {
+    const c = promoCode.trim();
+    if (!c) {
+      setPromoPreviewTotal(null);
+      return;
+    }
+    const ac = new AbortController();
+    const t = setTimeout(() => {
+      fetch(`/api/promo/preview?code=${encodeURIComponent(c.toUpperCase())}&total=${total}`, { signal: ac.signal })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.ok && typeof d.finalTotal === "number") setPromoPreviewTotal(d.finalTotal);
+          else setPromoPreviewTotal(null);
+        })
+        .catch(() => setPromoPreviewTotal(null));
+    }, 350);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [promoCode, total]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cartRows.length === 0) return;
+    if (!privacyConsent) {
+      alert(t("checkout.alert_consent"));
+      return;
+    }
+    if (!isRuPhoneComplete(phone)) {
+      alert("Укажите телефон полностью в формате +7(999)999-99-99");
+      return;
+    }
     setIsSubmitting(true);
     setPaymentUrl(null);
     try {
@@ -80,10 +122,14 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
         }),
       });
       const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error || "Ошибка создания заказа");
+      if (!orderRes.ok) throw new Error(orderData.error || t("checkout.error_order"));
       const orderId = orderData.order?.id || orderData.orderNumber;
       const finalTotal = orderData.order?.total ?? total;
-      const returnUrl = typeof window !== "undefined" ? `${window.location.origin}/account?order=${orderId}` : "";
+      const rt = orderData.order?.reviewToken as string | undefined;
+      const emailQ = email.trim() ? `&email=${encodeURIComponent(email.trim())}` : "";
+      const thanksPath = `/order/thanks?order=${encodeURIComponent(orderId)}${rt ? `&rt=${encodeURIComponent(rt)}` : ""}${emailQ}`;
+      const returnUrl =
+        typeof window !== "undefined" ? `${window.location.origin}${thanksPath}` : "";
       if (payMethod === "online") {
         const res = await fetch("/api/payment/create", {
           method: "POST",
@@ -102,12 +148,12 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
           setPaymentUrl(data.confirmationUrl);
           return;
         }
-        if (!res.ok) throw new Error(data.error || "Ошибка создания платежа");
+        if (!res.ok) throw new Error(data.error || t("checkout.error_payment"));
       }
       clearCart();
-      window.location.href = `/account?order=${orderId}&paid=later`;
+      window.location.href = thanksPath;
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Ошибка. Попробуйте позже.");
+      alert(err instanceof Error ? err.message : t("checkout.error_generic"));
     } finally {
       setIsSubmitting(false);
     }
@@ -117,13 +163,13 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
     const amount = paymentAmount ?? total;
     return (
       <div className="liquidGlass-dock mt-8 rounded-3xl border border-white/40 p-8 text-center">
-        <p className="text-lg font-medium">Переход к оплате</p>
-        <p className="mt-2 text-sm text-zinc-600">Вы будете перенаправлены на безопасную страницу оплаты.</p>
+        <p className="text-lg font-medium">{t("checkout.pay_redirect_title")}</p>
+        <p className="mt-2 text-sm text-zinc-600">{t("checkout.pay_redirect_text")}</p>
         <a
           href={paymentUrl}
           className="mt-6 inline-flex rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-medium text-white hover:bg-zinc-800"
         >
-          Оплатить {amount.toLocaleString("ru-RU")} ₽
+          {t("checkout.pay_btn_prefix")} {amount.toLocaleString("ru-RU")} ₽
         </a>
       </div>
     );
@@ -136,9 +182,9 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
   if (cartRows.length === 0) {
     return (
       <div className="liquidGlass-dock mt-8 rounded-3xl border border-white/40 p-8 text-center">
-        <p className="text-zinc-700">В корзине пока ничего нет.</p>
+        <p className="text-zinc-700">{t("checkout.empty_cart")}</p>
         <Link href="/catalog" className="mt-4 inline-block rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:bg-zinc-800">
-          Перейти к продукции
+          {t("checkout.to_catalog")}
         </Link>
       </div>
     );
@@ -148,42 +194,40 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
     <form onSubmit={handleSubmit} className="mt-8 grid gap-8 lg:grid-cols-2">
       <div className="space-y-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-zinc-700">Имя</label>
+          <label htmlFor="name" className="block text-sm font-medium text-zinc-700">{t("checkout.field_name")}</label>
           <input id="name" type="text" required value={name} onChange={(e) => setName(e.target.value)} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-zinc-700">Email</label>
+          <label htmlFor="email" className="block text-sm font-medium text-zinc-700">{t("checkout.field_email")}</label>
           <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
+        <PhoneInput id="phone" label={t("checkout.field_phone")} value={phone} onChange={setPhone} required />
+        <CheckoutSpinWheel email={email} phone={phone} onCode={applyWheelCode} disabled={cartRows.length === 0} />
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-zinc-700">Телефон</label>
-          <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
-        </div>
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium text-zinc-700">Адрес доставки</label>
+          <label htmlFor="address" className="block text-sm font-medium text-zinc-700">{t("checkout.field_address")}</label>
           <textarea id="address" required rows={3} value={address} onChange={(e) => setAddress(e.target.value)} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
-          <label htmlFor="promo" className="block text-sm font-medium text-zinc-700">Промокод</label>
-          <input id="promo" type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Необязательно" className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
+          <label htmlFor="promo" className="block text-sm font-medium text-zinc-700">{t("checkout.field_promo")}</label>
+          <input id="promo" type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder={t("checkout.placeholder_promo")} className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5" />
         </div>
         <div>
-          <span className="block text-sm font-medium text-zinc-700">Способ оплаты</span>
+          <span className="block text-sm font-medium text-zinc-700">{t("checkout.pay_label")}</span>
           <div className="mt-2 flex gap-4">
             <label className="flex items-center gap-2">
               <input type="radio" name="pay" checked={payMethod === "online"} onChange={() => setPayMethod("online")} />
-              Оплата на сайте (картой)
+              {t("checkout.pay_online")}
             </label>
             <label className="flex items-center gap-2">
               <input type="radio" name="pay" checked={payMethod === "on_delivery"} onChange={() => setPayMethod("on_delivery")} />
-              При получении
+              {t("checkout.pay_delivery")}
             </label>
           </div>
         </div>
       </div>
       <div>
         <div className="liquidGlass-dock rounded-3xl border border-white/40 p-6">
-          <h2 className="text-lg font-semibold">Ваш заказ</h2>
+          <h2 className="text-lg font-semibold">{t("checkout.order_title")}</h2>
           <ul className="mt-4 space-y-3">
             {cartRows.map(({ line, title, price, slug }) => (
               <li key={line.productId} className="liquidGlass-dock rounded-xl border border-white/40 p-3 text-sm">
@@ -196,7 +240,7 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
                     onClick={() => removeProduct(line.productId)}
                     className="shrink-0 text-xs text-zinc-500 hover:text-red-700"
                   >
-                    Убрать
+                    {t("checkout.remove_line")}
                   </button>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -205,7 +249,7 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
                       type="button"
                       className="glass-subtle rounded-lg border border-white/45 px-2 py-1 text-xs font-medium transition hover:bg-white/45"
                       onClick={() => setQuantity(line.productId, line.quantity - 1)}
-                      aria-label="Меньше"
+                      aria-label={t("checkout.aria_qty_less")}
                     >
                       −
                     </button>
@@ -214,7 +258,7 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
                       type="button"
                       className="glass-subtle rounded-lg border border-white/45 px-2 py-1 text-xs font-medium transition hover:bg-white/45"
                       onClick={() => setQuantity(line.productId, line.quantity + 1)}
-                      aria-label="Больше"
+                      aria-label={t("checkout.aria_qty_more")}
                     >
                       +
                     </button>
@@ -227,13 +271,39 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
             ))}
           </ul>
           <div className="mt-4 flex justify-between border-t border-white/40 pt-4 text-lg font-semibold">
-            <span>Итого</span>
-            <span className="tabular-nums">{total.toLocaleString("ru-RU")} ₽</span>
+            <span>{t("checkout.total")}</span>
+            <span className="tabular-nums">
+              {promoPreviewTotal != null ? (
+                <>
+                  <span className="mr-2 text-sm font-normal text-zinc-500 line-through">{total.toLocaleString("ru-RU")} ₽</span>
+                  {promoPreviewTotal.toLocaleString("ru-RU")} ₽
+                </>
+              ) : (
+                <>{total.toLocaleString("ru-RU")} ₽</>
+              )}
+            </span>
           </div>
-          <button type="submit" disabled={isSubmitting} className="mt-6 w-full rounded-2xl bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50">
-            {payMethod === "online" ? "Перейти к оплате" : "Оформить заказ"}
+          <label className="mt-4 flex cursor-pointer items-start gap-3 text-left text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={privacyConsent}
+              onChange={(e) => setPrivacyConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-400 text-zinc-900 focus:ring-zinc-500"
+            />
+            <span>
+              {t("checkout.consent_before")}{" "}
+              <Link href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-zinc-900 underline underline-offset-2 hover:text-zinc-700">
+                {t("checkout.consent_privacy")}
+              </Link>{" "}
+              {t("checkout.consent_after")}
+            </span>
+          </label>
+          <button type="submit" disabled={isSubmitting || !privacyConsent} className="mt-6 w-full rounded-2xl bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50">
+            {payMethod === "online" ? t("checkout.btn_pay") : t("checkout.btn_submit")}
           </button>
-          <Link href="/catalog" className="mt-4 block text-center text-sm text-zinc-600 hover:text-zinc-900">Вернуться к продукции</Link>
+          <Link href="/catalog" className="mt-4 block text-center text-sm text-zinc-600 hover:text-zinc-900">
+            {t("checkout.back_catalog")}
+          </Link>
         </div>
       </div>
     </form>

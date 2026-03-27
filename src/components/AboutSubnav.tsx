@@ -3,6 +3,7 @@ import Link from "next/link";
 export const ABOUT_SUBNAV = [
   { href: "/about", label: "О бренде" },
   { href: "/philosophy", label: "Наша философия" },
+  { href: "/about/reviews", label: "Отзывы" },
   { href: "/blog", label: "Блог" },
   { href: "/contacts", label: "Контакты" },
 ] as const;

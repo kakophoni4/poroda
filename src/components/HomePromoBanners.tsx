@@ -123,7 +123,7 @@ export default function HomePromoBanners({ banners }: Props) {
                 aria-hidden
               />
               {b.buttonText.trim() && b.linkUrl.trim() && (
-                <div className="absolute inset-x-0 bottom-0 flex justify-center p-4 pb-5 sm:p-6 sm:pb-8">
+                <div className="absolute inset-x-0 bottom-2.5 flex justify-center p-4 pb-5 sm:bottom-3 sm:p-6 sm:pb-8">
                   <a
                     href={b.linkUrl.trim()}
                     {...(isExternal(b.linkUrl.trim())
@@ -151,9 +151,15 @@ export default function HomePromoBanners({ banners }: Props) {
             aria-label="Предыдущий баннер"
             onClick={() => scrollByDir(-1)}
             disabled={index <= 0}
-            className="glass absolute left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-zinc-800 opacity-90 shadow-lg transition hover:opacity-100 disabled:pointer-events-none disabled:opacity-25 sm:left-5 sm:h-14 sm:w-14"
+            className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center bg-transparent p-2 text-white opacity-95 transition hover:opacity-100 disabled:pointer-events-none disabled:opacity-25 sm:left-3 sm:p-2.5"
           >
-            <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <svg
+              className="h-7 w-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)] sm:h-8 sm:w-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -162,9 +168,15 @@ export default function HomePromoBanners({ banners }: Props) {
             aria-label="Следующий баннер"
             onClick={() => scrollByDir(1)}
             disabled={index >= slides.length - 1}
-            className="glass absolute right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full text-zinc-800 opacity-90 shadow-lg transition hover:opacity-100 disabled:pointer-events-none disabled:opacity-25 sm:right-5 sm:h-14 sm:w-14"
+            className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center bg-transparent p-2 text-white opacity-95 transition hover:opacity-100 disabled:pointer-events-none disabled:opacity-25 sm:right-3 sm:p-2.5"
           >
-            <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <svg
+              className="h-7 w-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)] sm:h-8 sm:w-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>

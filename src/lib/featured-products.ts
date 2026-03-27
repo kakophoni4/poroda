@@ -11,6 +11,11 @@ const categoryToFolder: Record<string, number> = {
   sets: 6,
 };
 
+/** Число и «₽» не разъезжаются на две строки */
+export function formatFeaturedRub(price: number): string {
+  return `${price.toLocaleString("ru-RU")}\u00a0₽`;
+}
+
 export type FeaturedProduct = {
   id: string;
   slug: string;
@@ -46,7 +51,7 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
         title: p.title,
         shortDesc: p.shortDesc ?? undefined,
         price: p.price,
-        priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+        priceFormatted: formatFeaturedRub(p.price),
         imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
       }));
     }
@@ -62,7 +67,7 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
       title: p.title,
       shortDesc: p.shortDesc ?? undefined,
       price: p.price,
-      priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+      priceFormatted: formatFeaturedRub(p.price),
       imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
     }));
   } catch {
@@ -73,7 +78,7 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
       title: p.title,
       shortDesc: p.shortDesc,
       price: p.price,
-      priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+      priceFormatted: formatFeaturedRub(p.price),
       imageUrl: p.imageUrl ?? `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`,
     }));
   }
@@ -89,7 +94,7 @@ function mapDbProduct(
     title: p.title,
     shortDesc: p.shortDesc ?? undefined,
     price: p.price,
-    priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+    priceFormatted: formatFeaturedRub(p.price),
     imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
   };
 }
@@ -110,7 +115,7 @@ export async function getAllProductsForHome(): Promise<FeaturedProduct[]> {
       title: p.title,
       shortDesc: p.shortDesc,
       price: p.price,
-      priceFormatted: `${p.price.toLocaleString("ru-RU")} ₽`,
+      priceFormatted: formatFeaturedRub(p.price),
       imageUrl: p.imageUrl ?? `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`,
     }));
   }

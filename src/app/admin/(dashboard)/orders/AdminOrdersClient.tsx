@@ -1,15 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import type { Order, OrderItem, User, Product } from "@prisma/client";
+import { useMemo, useState } from "react";
+import type { Order, OrderItem } from "@prisma/client";
+import { orderStatusLabel, ORDER_STATUS_VALUES } from "@/lib/order-status";
 
 type OrderWithRelations = Order & {
   items: (OrderItem & { product: { slug: string; title: string } | null })[];
   user: { id: string; email: string; name: string | null } | null;
 };
 
-export default function AdminOrdersClient({ initialOrders }: { initialOrders: OrderWithRelations[] }) {
+type PromoOption = { id: string; code: string; isDermatologist: boolean };
+
+function orderMatchesPromoFilter(o: OrderWithRelations, filterId: string, codeById: Map<string, string>): boolean {
+  if (filterId === "__none__") {
+    return !o.promoId?.trim() && !o.promoCode?.trim();
+  }
+  if (o.promoId === filterId) return true;
+  const code = codeById.get(filterId);
+  if (code && o.promoCode?.trim().toUpperCase() === code) return true;
+  return false;
+}
+
+export default function AdminOrdersClient({
+  initialOrders,
+  promoOptions,
+}: {
+  initialOrders: OrderWithRelations[];
+  promoOptions: PromoOption[];
+}) {
   const [orders, setOrders] = useState(initialOrders);
+  const [promoFilter, setPromoFilter] = useState<string>("");
   const [editing, setEditing] = useState<OrderWithRelations | null>(null);
   const [editForm, setEditForm] = useState({ status: "", address: "", phone: "", name: "", email: "" });
 
@@ -23,6 +43,16 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
       email: o.email,
     });
   };
+
+  const codeById = useMemo(
+    () => new Map(promoOptions.map((p) => [p.id, p.code.toUpperCase()] as const)),
+    [promoOptions],
+  );
+
+  const filteredOrders = useMemo(() => {
+    if (!promoFilter) return orders;
+    return orders.filter((o) => orderMatchesPromoFilter(o, promoFilter, codeById));
+  }, [orders, promoFilter, codeById]);
 
   const saveEdit = async () => {
     if (!editing) return;
@@ -40,6 +70,30 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
 
   return (
     <>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-zinc-700">
+          <span className="shrink-0">Промокод:</span>
+          <select
+            value={promoFilter}
+            onChange={(e) => setPromoFilter(e.target.value)}
+            className="min-w-[12rem] rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          >
+            <option value="">Все заказы</option>
+            <option value="__none__">Без промокода</option>
+            {promoOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code}
+                {p.isDermatologist ? " (дерматолог)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        {promoFilter && (
+          <span className="text-sm text-zinc-500">
+            Показано: {filteredOrders.length} из {orders.length}
+          </span>
+        )}
+      </div>
       <div className="mt-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -53,7 +107,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
             </tr>
           </thead>
           <tbody>
-            {orders.map((o) => (
+            {filteredOrders.map((o) => (
               <tr key={o.id} className="border-b border-zinc-100">
                 <td className="py-3 pr-4">
                   <span className="font-mono">{o.id.slice(0, 8)}…</span>
@@ -67,7 +121,9 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                 </td>
                 <td className="py-3 pr-4">{o.promoCode || "—"}</td>
                 <td className="py-3 pr-4 font-medium">{o.total.toLocaleString("ru-RU")} ₽</td>
-                <td className="py-3 pr-4"><span className="rounded-full bg-zinc-100 px-2 py-0.5">{o.status}</span></td>
+                <td className="py-3 pr-4">
+                  <span className="rounded-full bg-zinc-100 px-2 py-0.5">{orderStatusLabel(o.status)}</span>
+                </td>
                 <td className="py-3">
                   <button type="button" onClick={() => openEdit(o)} className="text-zinc-600 hover:underline">
                     Редактировать
@@ -87,7 +143,17 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
             <div className="mt-4 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-zinc-600">Статус</label>
-                <input value={editForm.status} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))} className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm" />
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+                >
+                  {ORDER_STATUS_VALUES.map((v) => (
+                    <option key={v} value={v}>
+                      {orderStatusLabel(v)}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-zinc-600">Имя</label>

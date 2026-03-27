@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isAllowedOrderStatus, orderStatusLabel } from "@/lib/order-status";
 
 export async function GET(
   _request: NextRequest,
@@ -35,6 +36,16 @@ export async function PATCH(
     name?: string;
     email?: string;
   };
+  if (status != null && !isAllowedOrderStatus(status)) {
+    return NextResponse.json(
+      { error: "Недопустимый статус: оформлен, в сборке, в доставке, доставлен" },
+      { status: 400 }
+    );
+  }
+  const existing = await prisma.order.findUnique({
+    where: { id },
+    select: { status: true, userId: true },
+  });
   const order = await prisma.order.update({
     where: { id },
     data: {
@@ -46,5 +57,20 @@ export async function PATCH(
     },
     include: { items: true },
   });
+  if (
+    existing &&
+    status != null &&
+    status !== existing.status &&
+    order.userId
+  ) {
+    const label = orderStatusLabel(status);
+    await prisma.userNotification.create({
+      data: {
+        userId: order.userId,
+        title: `Заказ: ${label}`,
+        body: `Статус вашего заказа ${order.id.slice(0, 10)}… изменён на «${label}».`,
+      },
+    });
+  }
   return NextResponse.json(order);
 }

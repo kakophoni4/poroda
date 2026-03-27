@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { useSiteCopy } from "@/context/SiteCopyContext";
 
 const QUIZ_DISMISS_KEY = "quizPopupDismissed";
 const QUIZ_DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 24 часа
-const QUIZ_DELAY_MS = 3 * 60 * 1000; // 3 минуты
+const QUIZ_IDLE_MS = 3 * 60 * 1000; // 3 минуты без действий
+/** Не вызывать сброс таймера чаще (mousemove и т.д.) */
+const ACTIVITY_THROTTLE_MS = 750;
 
 type QuizAnswer = { id: string; label: string; linkUrl: string; nextQuestionId: string | null };
 type QuizQuestion = { id: string; title: string; sortOrder: number; answers: QuizAnswer[] };
@@ -31,42 +34,113 @@ function setDismissed() {
 
 const QUIZ_PANEL_MS = 300;
 
+const IDLE_EVENTS = ["keydown", "pointerdown", "scroll", "touchstart", "wheel", "mousemove"] as const;
+
 export default function QuizPopup() {
+  const t = useSiteCopy();
   const pathname = usePathname();
+  const shouldTrackIdle = Boolean(pathname && !pathname.startsWith("/admin"));
+
   const [visible, setVisible] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(null);
   const [overlayMounted, setOverlayMounted] = useState(false);
   const [overlayIn, setOverlayIn] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fetchedRef = useRef(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visibleRef = useRef(false);
+  const scheduleIdleRef = useRef<() => void>(() => {});
+  const lastActivityBumpRef = useRef(0);
+  const hadModalOpenRef = useRef(false);
   const quizOpenedAnimRef = useRef(false);
 
-  const isHome = pathname === "/";
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
+
+  /** На админке не крутим квиз и закрываем окно при переходе */
+  useEffect(() => {
+    if (!shouldTrackIdle && visible) setVisible(false);
+  }, [shouldTrackIdle, visible]);
 
   useEffect(() => {
-    if (!isHome) return;
-    if (isDismissed()) return;
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      if (fetchedRef.current) return;
-      fetchedRef.current = true;
+    const clearIdleTimer = () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    };
+
+    const tryOpenAfterIdle = () => {
+      idleTimerRef.current = null;
+      if (!shouldTrackIdle || visibleRef.current || isDismissed()) return;
       fetch("/api/quiz")
         .then((res) => (res.ok ? res.json() : []))
         .then((data: QuizQuestion[]) => {
           if (!Array.isArray(data) || data.length === 0) return;
           const first = data[0];
-          if (!first.answers?.length) return;
+          if (!first?.answers?.length) return;
+          if (visibleRef.current || isDismissed()) return;
           setQuestions(data);
           setCurrentQuestion(first);
+          visibleRef.current = true;
           setVisible(true);
         })
         .catch(() => {});
-    }, QUIZ_DELAY_MS);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isHome]);
+
+    const scheduleIdleTimer = () => {
+      clearIdleTimer();
+      if (!shouldTrackIdle || visibleRef.current || isDismissed()) return;
+      idleTimerRef.current = setTimeout(tryOpenAfterIdle, QUIZ_IDLE_MS);
+    };
+
+    const onUserActivity = () => {
+      if (!shouldTrackIdle || visibleRef.current || isDismissed()) return;
+      const now = Date.now();
+      if (now - lastActivityBumpRef.current < ACTIVITY_THROTTLE_MS) return;
+      lastActivityBumpRef.current = now;
+      scheduleIdleTimer();
+    };
+
+    scheduleIdleRef.current = scheduleIdleTimer;
+
+    if (!shouldTrackIdle || isDismissed()) {
+      clearIdleTimer();
+      return clearIdleTimer;
+    }
+
+    scheduleIdleTimer();
+
+    const opts: AddEventListenerOptions = { passive: true, capture: true };
+    for (const ev of IDLE_EVENTS) {
+      window.addEventListener(ev, onUserActivity, opts);
+    }
+
+    return () => {
+      for (const ev of IDLE_EVENTS) {
+        window.removeEventListener(ev, onUserActivity, opts);
+      }
+      clearIdleTimer();
+    };
+  }, [shouldTrackIdle]);
+
+  /** Пока окно открыто — таймер бездействия не нужен; после закрытия — снова отсчёт 3 мин */
+  useEffect(() => {
+    if (visible) {
+      hadModalOpenRef.current = true;
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+      return;
+    }
+    if (hadModalOpenRef.current) {
+      hadModalOpenRef.current = false;
+      if (shouldTrackIdle && !isDismissed()) {
+        scheduleIdleRef.current();
+      }
+    }
+  }, [visible, shouldTrackIdle]);
 
   useLayoutEffect(() => {
     if (visible && currentQuestion) setOverlayMounted(true);
@@ -111,6 +185,7 @@ export default function QuizPopup() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setDismissed();
+        visibleRef.current = false;
         setVisible(false);
       }
     };
@@ -120,6 +195,7 @@ export default function QuizPopup() {
 
   const handleClose = () => {
     setDismissed();
+    visibleRef.current = false;
     setVisible(false);
   };
 
@@ -135,12 +211,10 @@ export default function QuizPopup() {
       window.location.href = answer.linkUrl.trim();
       return;
     }
-    // нет ни следующего вопроса, ни ссылки — просто закрыть
     handleClose();
   };
 
   if (!currentQuestion) return null;
-  /* При открытии первый кадр без overlayMounted — всё равно рендерим (анимация «въезда») */
   if (!visible && !overlayMounted) return null;
 
   const answerBtnClass =
@@ -165,7 +239,7 @@ export default function QuizPopup() {
         className={`fixed inset-0 z-0 cursor-default transition-opacity duration-300 ease-out motion-reduce:transition-none ${
           overlayIn ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
-        aria-label="Закрыть"
+        aria-label={t("aria.close")}
         tabIndex={-1}
         onClick={handleClose}
       />
@@ -179,13 +253,13 @@ export default function QuizPopup() {
       >
         <div className="flex items-start justify-between gap-4">
           <h2 id="quiz-title" className="text-lg font-semibold leading-snug text-zinc-900">
-            Не можете определиться? Выберите вариант ниже.
+            {t("quiz.shell_title")}
           </h2>
           <button
             type="button"
             onClick={handleClose}
             className="shrink-0 rounded-lg p-1 text-zinc-500 transition-[background-color,color,transform] duration-200 ease-out hover:bg-zinc-100 hover:text-zinc-700 active:scale-95"
-            aria-label="Закрыть"
+            aria-label={t("aria.close")}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

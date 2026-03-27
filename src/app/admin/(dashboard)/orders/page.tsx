@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminOrdersPage() {
   let orders: Awaited<ReturnType<typeof prisma.order.findMany<{ include: { items: { include: { product: { select: { slug: true; title: true } } } }; user: { select: { id: true; email: true; name: true } } } }>>> = [];
+  let promoOptions: { id: string; code: string; isDermatologist: boolean }[] = [];
   try {
     orders = await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
@@ -13,14 +14,31 @@ export default async function AdminOrdersPage() {
         user: { select: { id: true, email: true, name: true } },
       },
     });
-  } catch {
-    // БД не подключена
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") console.error("[admin/orders] order.findMany:", e);
+  }
+  try {
+    promoOptions = await prisma.promo.findMany({
+      select: { id: true, code: true, isDermatologist: true },
+      orderBy: { code: "asc" },
+    });
+  } catch (e) {
+    if (process.env.NODE_ENV === "development") console.error("[admin/orders] promo.findMany:", e);
+    try {
+      const rows = await prisma.promo.findMany({
+        select: { id: true, code: true },
+        orderBy: { code: "asc" },
+      });
+      promoOptions = rows.map((p) => ({ ...p, isDermatologist: false }));
+    } catch {
+      promoOptions = [];
+    }
   }
   return (
     <>
       <h1 className="text-2xl font-semibold">Заказы</h1>
-      <p className="mt-1 text-sm text-zinc-600">Просмотр деталей и ручное редактирование заказа.</p>
-      <AdminOrdersClient initialOrders={orders} />
+      <p className="mt-1 text-sm text-zinc-600">Просмотр деталей и ручное редактирование заказа. Фильтр по промокоду.</p>
+      <AdminOrdersClient initialOrders={orders} promoOptions={promoOptions} />
     </>
   );
 }

@@ -4,6 +4,7 @@ import AdminLogout from "./AdminLogout";
 
 const adminNav = [
   { href: "/admin", label: "Дашборд" },
+  { href: "/admin/site-copy", label: "Тексты сайта" },
   { href: "/admin/banners", label: "Баннеры" },
   { href: "/admin/concerns", label: "Проблемы" },
   { href: "/admin/quiz", label: "Квиз" },
@@ -14,6 +15,8 @@ const adminNav = [
   { href: "/admin/mailings", label: "Рассылки" },
   { href: "/admin/analytics", label: "Аналитика" },
   { href: "/admin/users", label: "Клиенты" },
+  { href: "/admin/reviews", label: "Отзывы" },
+  { href: "/admin/questions", label: "Вопросы с сайта" },
 ];
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {

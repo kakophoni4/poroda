@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProductImages, type Product, type CatalogCategory } from "@/lib/catalog-data";
 import { useCart } from "@/context/CartContext";
+import { useSiteCopy } from "@/context/SiteCopyContext";
 import { catalogDisplayTitle, catalogDescriptionLineClamp } from "@/lib/product-title";
 
 const categoryToFolder: Record<string, number> = { cleansing: 1, toners: 2, serums: 3, creams: 4, masks: 5, sets: 6 };
@@ -21,6 +22,7 @@ function ProductCard({
   totalCards: number;
   swapTick: number;
 }) {
+  const t = useSiteCopy();
   const { addProduct } = useCart();
   const images = getProductImages(p, `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`);
   const [index, setIndex] = useState(0);
@@ -79,8 +81,8 @@ function ProductCard({
                   {p.isNew && (
                     <div className="absolute left-[-38%] top-[14%] w-[140%] -rotate-45 border border-white/25 bg-zinc-900 py-0.5 text-center shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
                       <span className="block text-[7px] font-extrabold uppercase tracking-[0.2em] text-white sm:text-[8px] sm:tracking-[0.25em]">
-                        new
-                      </span>
+                      {t("catalog.badge_new")}
+                    </span>
                     </div>
                   )}
                   {p.oldPrice && (
@@ -90,8 +92,8 @@ function ProductCard({
                       }`}
                     >
                       <span className="block text-[7px] font-extrabold uppercase tracking-wide text-white sm:text-[8px]">
-                        скидка
-                      </span>
+                      {t("catalog.badge_sale")}
+                    </span>
                     </div>
                   )}
                 </div>
@@ -102,7 +104,7 @@ function ProductCard({
                     type="button"
                     onClick={(e) => go(e, -1)}
                     className="absolute left-1 top-1/2 z-10 -translate-y-1/2 p-0 text-white/90 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
-                    aria-label="Предыдущее фото"
+                    aria-label={t("catalog.prev_photo")}
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -112,7 +114,7 @@ function ProductCard({
                     type="button"
                     onClick={(e) => go(e, 1)}
                     className="absolute right-1 top-1/2 z-10 -translate-y-1/2 p-0 text-white/90 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
-                    aria-label="Следующее фото"
+                    aria-label={t("catalog.next_photo")}
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -178,17 +180,17 @@ function ProductCard({
                 addedFlash ? "bg-emerald-600 text-white" : "bg-zinc-900 text-white hover:bg-zinc-800"
               }`}
             >
-              {addedFlash ? "Добавлено ✓" : "В корзину"}
+              {addedFlash ? t("catalog.card_added_done") : t("catalog.card_add")}
             </button>
           ) : (
-            <span className="shrink-0 self-end text-[10px] text-zinc-400 sm:text-xs">Нет в наличии</span>
+            <span className="shrink-0 self-end text-[10px] text-zinc-400 sm:text-xs">{t("catalog.out_of_stock")}</span>
           )}
         </div>
         <Link
           href={`/catalog/${p.slug}`}
           className="block text-center text-[10px] font-medium text-zinc-500 hover:text-zinc-900 sm:text-xs"
         >
-          Подробнее →
+          {t("catalog.card_detail")}
         </Link>
       </div>
     </div>
@@ -199,19 +201,20 @@ type Props = { initialProducts: Product[]; categories: CatalogCategory[] };
 
 export type CatalogFilter = "all" | "promo" | "new" | "bestseller";
 
-function positionsPhrase(n: number): string {
-  if (n === 0) return "Ничего не найдено — попробуйте другой фильтр";
+function positionsPhrase(n: number, t: (k: string) => string): string {
+  if (n === 0) return t("catalog.empty");
   const mod10 = n % 10;
   const mod100 = n % 100;
-  let w = "позиций";
+  let w = t("catalog.word_many");
   if (mod100 < 11 || mod100 > 14) {
-    if (mod10 === 1) w = "позиция";
-    else if (mod10 >= 2 && mod10 <= 4) w = "позиции";
+    if (mod10 === 1) w = t("catalog.word_one");
+    else if (mod10 >= 2 && mod10 <= 4) w = t("catalog.word_few");
   }
-  return `В каталоге: ${n} ${w}`;
+  return `${t("catalog.count_intro")} ${n} ${w}`;
 }
 
 export default function CatalogClient({ initialProducts, categories: _categories }: Props) {
+  const t = useSiteCopy();
   const searchParams = useSearchParams();
   const [swapTick, setSwapTick] = useState(0);
 
@@ -243,12 +246,15 @@ export default function CatalogClient({ initialProducts, categories: _categories
     return `/catalog?${u.toString()}`;
   };
 
-  const filterTabs: { value: CatalogFilter; label: string }[] = [
-    { value: "all", label: "Вся продукция" },
-    { value: "promo", label: "Акции" },
-    { value: "new", label: "Новинки" },
-    { value: "bestseller", label: "Бестселлеры" },
-  ];
+  const filterTabs: { value: CatalogFilter; label: string }[] = useMemo(
+    () => [
+      { value: "all" as const, label: t("catalog.tab_all") },
+      { value: "promo" as const, label: t("catalog.tab_promo") },
+      { value: "new" as const, label: t("catalog.tab_new") },
+      { value: "bestseller" as const, label: t("catalog.tab_bestseller") },
+    ],
+    [t],
+  );
 
   return (
     <div>
@@ -274,7 +280,7 @@ export default function CatalogClient({ initialProducts, categories: _categories
         ))}
       </div>
 
-      <p className="mt-6 text-sm text-zinc-500">{positionsPhrase(filtered.length)}</p>
+      <p className="mt-6 text-sm text-zinc-500">{positionsPhrase(filtered.length, t)}</p>
     </div>
   );
 }

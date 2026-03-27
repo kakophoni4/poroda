@@ -1,24 +1,82 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { HomeConcernCardPublic } from "@/lib/home-concern-cards-public";
 import { concernCardLink } from "@/lib/home-concern-cards-public";
 
+const MD_MIN = "(min-width: 768px)";
+
+function subscribeMdUp(cb: () => void) {
+  const mq = window.matchMedia(MD_MIN);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+
+function getMdUpSnapshot() {
+  return window.matchMedia(MD_MIN).matches;
+}
+
+function getMdUpServer() {
+  return false;
+}
+
 const GAP = 8; // gap-2
 const GAP_SM = 12; // sm:gap-3
-const MIN_CARD = 88;
+const MIN_CARD = 70;
 const MIN_CARD_SM = 104;
 
-type Props = { cards: HomeConcernCardPublic[]; title?: string };
+const cardShellClass =
+  "group flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/35 bg-transparent";
 
-export default function HomeConcernsCarousel({
-  cards,
-  title = "С какой проблемой вы столкнулись?",
-}: Props) {
+function ConcernCardInner({ card }: { card: HomeConcernCardPublic }) {
+  return (
+    <>
+      <div className="relative h-16 w-full shrink-0 overflow-hidden rounded-t-2xl bg-transparent sm:h-20">
+        <img
+          src={card.imageUrl}
+          alt=""
+          className="h-full w-full object-cover [transform:translateZ(0)] transition-transform duration-200 ease-out will-change-transform group-hover:scale-[1.02]"
+        />
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col justify-start rounded-b-2xl bg-white/60 px-2 py-2 text-center backdrop-blur-[2px] sm:px-2.5 sm:py-2.5">
+        <div className="flex min-h-[2.0625rem] w-full flex-col justify-start sm:min-h-[2.234375rem]">
+          <p className="line-clamp-2 text-xs font-medium leading-snug text-zinc-900 group-hover:text-zinc-700 sm:text-[13px] sm:leading-snug">
+            {card.title}
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** До md: сетка 2 колонки; нечётная последняя — одна карточка по центру */
+function ConcernsMobileGrid({ cards }: { cards: HomeConcernCardPublic[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {cards.map((card, index) => {
+        const lastOdd = index === cards.length - 1 && cards.length % 2 === 1;
+        return (
+          <Link
+            key={card.id}
+            href={concernCardLink(card)}
+            className={
+              lastOdd
+                ? `${cardShellClass} col-span-2 mx-auto w-[calc(50%-0.25rem)] max-w-[calc(50%-0.25rem)]`
+                : cardShellClass
+            }
+          >
+            <ConcernCardInner card={card} />
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function HomeConcernsCarouselDesktop({ cards }: { cards: HomeConcernCardPublic[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [needsArrows, setNeedsArrows] = useState(false);
-  /** null = все влезают, карточки делят ширину поровну */
   const [cardWidthPx, setCardWidthPx] = useState<number | null>(null);
 
   const getGap = useCallback(() => {
@@ -64,7 +122,7 @@ export default function HomeConcernsCarousel({
         setNeedsArrows(true);
         const nFit = Math.max(1, Math.floor((W + gap) / (minCard + gap)));
         const cardW = (W - (nFit - 1) * gap) / nFit;
-        setCardWidthPx(Math.max(72, cardW));
+        setCardWidthPx(Math.max(64, cardW));
       }
     };
 
@@ -117,29 +175,49 @@ export default function HomeConcernsCarousel({
     [cards.length, cardWidthPx, getGap, scrollToIndex]
   );
 
-  if (cards.length === 0) return null;
-
-  const arrowBtn =
-    "flex shrink-0 items-center justify-center self-center rounded-lg p-1 text-zinc-800 transition hover:bg-black/[0.06] hover:text-zinc-900 active:bg-black/[0.1] disabled:pointer-events-none disabled:opacity-30";
+  const arrowBtnClass =
+    "absolute top-1/2 z-10 flex -translate-y-1/2 items-center justify-center bg-transparent p-1.5 text-zinc-800 transition hover:opacity-80 active:opacity-70 disabled:pointer-events-none disabled:opacity-30";
 
   return (
-    <section className="mt-6 bg-transparent sm:mt-8" aria-label={title}>
-      <h2 className="mb-3 text-center text-lg font-bold tracking-tight sm:text-xl">{title}</h2>
-      <div
-        className={
-          needsArrows
-            ? "grid w-full grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-stretch gap-x-1 sm:grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] sm:gap-x-2"
-            : "w-full"
-        }
-      >
-        {needsArrows ? (
-          <button type="button" aria-label="Предыдущая карточка" onClick={() => scrollByDir(-1)} className={arrowBtn}>
-            <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+    <div className="relative w-full">
+      {needsArrows ? (
+        <>
+          <button
+            type="button"
+            aria-label="Предыдущая карточка"
+            onClick={() => scrollByDir(-1)}
+            className={`${arrowBtnClass} left-0 sm:left-0.5`}
+          >
+            <svg
+              className="h-6 w-6 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] sm:h-7 sm:w-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-        ) : null}
+          <button
+            type="button"
+            aria-label="Следующая карточка"
+            onClick={() => scrollByDir(1)}
+            className={`${arrowBtnClass} right-0 sm:right-0.5`}
+          >
+            <svg
+              className="h-6 w-6 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] sm:h-7 sm:w-7"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      ) : null}
 
+      <div className={needsArrows ? "min-w-0 px-6 sm:px-7" : "min-w-0"}>
         <div
           ref={scrollerRef}
           className={
@@ -155,38 +233,34 @@ export default function HomeConcernsCarousel({
               href={concernCardLink(card)}
               className={
                 needsArrows && cardWidthPx != null
-                  ? "group flex h-full min-h-0 shrink-0 snap-start flex-col self-stretch overflow-hidden rounded-2xl border border-white/35 bg-transparent"
-                  : "group flex h-full min-h-0 flex-1 basis-0 flex-col self-stretch overflow-hidden rounded-2xl border border-white/35 bg-transparent"
+                  ? `${cardShellClass} h-full shrink-0 snap-start self-stretch`
+                  : `${cardShellClass} h-full flex-1 basis-0 self-stretch`
               }
               style={needsArrows && cardWidthPx != null ? { width: cardWidthPx, flex: "0 0 auto" } : undefined}
             >
-              <div className="relative h-16 w-full shrink-0 overflow-hidden rounded-t-2xl bg-transparent sm:h-20">
-                <img
-                  src={card.imageUrl}
-                  alt=""
-                  className="h-full w-full object-cover [transform:translateZ(0)] transition-transform duration-200 ease-out will-change-transform group-hover:scale-[1.02]"
-                />
-              </div>
-              {/* Ровная высота под 2 строки (line-clamp-2): одинаковый блок у всех карточек */}
-              <div className="flex min-h-0 flex-1 flex-col justify-start rounded-b-2xl bg-white/60 px-2 py-2 text-center backdrop-blur-[2px] sm:px-2.5 sm:py-2.5">
-                <div className="flex min-h-[2.0625rem] w-full flex-col justify-start sm:min-h-[2.234375rem]">
-                  <p className="line-clamp-2 text-xs font-medium leading-snug text-zinc-900 group-hover:text-zinc-700 sm:text-[13px] sm:leading-snug">
-                    {card.title}
-                  </p>
-                </div>
-              </div>
+              <ConcernCardInner card={card} />
             </Link>
           ))}
         </div>
-
-        {needsArrows ? (
-          <button type="button" aria-label="Следующая карточка" onClick={() => scrollByDir(1)} className={arrowBtn}>
-            <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        ) : null}
       </div>
+    </div>
+  );
+}
+
+type Props = { cards: HomeConcernCardPublic[]; title?: string };
+
+export default function HomeConcernsCarousel({
+  cards,
+  title = "С какой проблемой вы столкнулись?",
+}: Props) {
+  const mdUp = useSyncExternalStore(subscribeMdUp, getMdUpSnapshot, getMdUpServer);
+
+  if (cards.length === 0) return null;
+
+  return (
+    <section className="mt-6 bg-transparent sm:mt-8" aria-label={title}>
+      <h2 className="mb-3 text-center text-lg font-bold tracking-tight sm:text-xl">{title}</h2>
+      {mdUp ? <HomeConcernsCarouselDesktop cards={cards} /> : <ConcernsMobileGrid cards={cards} />}
     </section>
   );
 }

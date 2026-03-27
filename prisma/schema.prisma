@@ -15,6 +15,15 @@ model Admin {
   updatedAt DateTime @updatedAt
 }
 
+/// Тексты интерфейса сайта (редактируются в админке «Тексты сайта»)
+model SiteCopy {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -74,6 +83,10 @@ model Product {
   shelfLifeText String? // Срок годности
   countryText  String?  // Страна производства
   inStock      Boolean  @default(true)
+  linkWildberries  String? // карточка на Wildberries
+  linkOzon         String? // Ozon
+  linkYandexMarket String? // Яндекс Маркет
+  dermatologistVideoUrl String? // видео-обзор дерматолога (YouTube, Vimeo, прямой mp4/webm)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   orderItems   OrderItem[]
@@ -99,14 +112,47 @@ model Order {
   phone         String
   name          String
   address       String
-  status        String      @default("pending")
+  /// placed | assembling | shipping | delivered (legacy: pending → как оформлен)
+  status        String      @default("placed")
   promoCode     String?
   promoId       String?
   paymentId     String?
   total         Int
+  /// Секретная ссылка для формы отзыва после заказа
+  reviewToken   String?     @unique
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
+  review        CustomerReview?
+}
+
+/// Отзыв покупателя (после заказа); на сайте только после одобрения в админке
+model CustomerReview {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  authorName String
+  body       String   @db.Text
+  rating     Int      @default(5)
+  /// URL изображений отзыва (/uploads/reviews/…)
+  imageUrls  String[] @default([])
+  status     String   @default("pending") // pending | approved | rejected
+  /// Промокод −10% на следующий заказ (создаётся при одобрении)
+  rewardCode String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+/// Вопрос с сайта (в админку, без публикации)
+model SiteQuestion {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  body      String   @db.Text
+  status    String   @default("new") // new | done
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
@@ -124,15 +170,37 @@ model Promo {
   id          String     @id @default(cuid())
   code        String     @unique
   percent     Int
+  /// Фиксированная скидка в рублях с суммы заказа (если > 0 — приоритет над процентом)
+  discountRub Int?
   description String?
   maxUses      Int?
   usedCount   Int        @default(0)
   validFrom   DateTime?
   validTo     DateTime?
   active      Boolean    @default(true)
+  /// Промокод дерматолога: в админке считаются заказы и вознаграждение (% от суммы заказов)
+  isDermatologist           Boolean @default(false)
+  /// Процент от суммы заказов (поле total) для расчёта вознаграждения дерматологу; 0–100
+  dermatologistRewardPercent Int?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   uses        PromoUse[]
+}
+
+/// Глобальный счётчик прокруток колеса (каждый 50-й — приз Telegram)
+model WheelGlobalCounter {
+  id    String @id
+  spins Int    @default(0)
+}
+
+/// Ограничение частоты: не чаще одного вращения в час на пару email+телефон
+model WheelSpinLog {
+  id        String   @id @default(cuid())
+  emailNorm String
+  phoneNorm String
+  createdAt DateTime @default(now())
+
+  @@index([emailNorm, phoneNorm, createdAt])
 }
 
 model PromoUse {

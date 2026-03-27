@@ -15,6 +15,10 @@ export type ProductDetailFields = {
   shelfLifeText?: string | null;
   countryText?: string | null;
   inStock?: boolean;
+  linkWildberries?: string | null;
+  linkOzon?: string | null;
+  linkYandexMarket?: string | null;
+  dermatologistVideoUrl?: string | null;
 };
 
 export function parseResearchLinks(raw: unknown): ResearchLinkItem[] {

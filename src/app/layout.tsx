@@ -5,7 +5,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
 import CartDock from "@/components/CartDock";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 import PageTransition from "@/components/PageTransition";
+import QuizPopup from "@/components/QuizPopup";
+import { getSiteCopyMap } from "@/lib/site-copy-server";
 
 const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
@@ -13,14 +16,18 @@ const manrope = Manrope({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "PORODA Cosmetics",
-  description: "Профессиональная уходовая косметика. Главная страница в разработке.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopyMap();
+  return {
+    title: "PORODA Cosmetics",
+    description: copy["meta.description"],
+  };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const siteCopy = await getSiteCopyMap();
   return (
-    <html lang="ru" className={`${manrope.variable} overflow-x-hidden`}>
+    <html lang="ru" className={manrope.variable}>
       <body className="min-h-screen overflow-x-hidden bg-transparent font-sans text-zinc-900 antialiased">
         {/* SVG-фильтры «жидкого стекла» (искажение + dock) */}
         <svg aria-hidden="true" className="absolute h-0 w-0 overflow-hidden" style={{ position: "absolute" }}>
@@ -64,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
         </div>
-        <Providers>
+        <Providers siteCopy={siteCopy}>
           <div className="relative z-10 flex min-h-screen flex-col">
             <Header />
             <CartDock />
@@ -72,6 +79,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <PageTransition>{children}</PageTransition>
             </main>
             <Footer />
+            <CookieConsentBanner />
+            <QuizPopup />
           </div>
         </Providers>
       </body>

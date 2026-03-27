@@ -1,6 +1,9 @@
+import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { applyPromoToTotal } from "@/lib/apply-promo";
 import { getAdminSession, getUserSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { orderStatusLabel } from "@/lib/order-status";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -20,7 +23,10 @@ export async function GET(request: NextRequest) {
   const orders = await prisma.order.findMany({
     where: { userId: userSession.userId },
     orderBy: { createdAt: "desc" },
-    include: { items: true },
+    include: {
+      items: { include: { product: { select: { slug: true } } } },
+      review: { select: { id: true, status: true } },
+    },
   });
   return NextResponse.json(orders);
 }
@@ -40,29 +46,45 @@ export async function POST(request: NextRequest) {
     if (!email || !phone || !name || !address || !items?.length || total == null) {
       return NextResponse.json({ error: "Не заполнены обязательные поля" }, { status: 400 });
     }
+    const emailNorm = email.trim().toLowerCase();
     const userSession = await getUserSession();
+    /** Заказ крепим к аккаунту только если email в форме совпадает с email профиля (иначе — «гость», даже при открытой сессии). */
+    let orderUserId: string | null = null;
+    if (userSession?.userId) {
+      const account = await prisma.user.findUnique({
+        where: { id: userSession.userId },
+        select: { email: true },
+      });
+      if (account?.email.trim().toLowerCase() === emailNorm) {
+        orderUserId = userSession.userId;
+      }
+    }
     let finalTotal = total;
     let promoId: string | null = null;
     if (promoCode) {
       const promo = await prisma.promo.findFirst({
         where: { code: promoCode.toUpperCase().trim(), active: true },
       });
-      if (promo && (!promo.maxUses || promo.usedCount < promo.maxUses)) {
-        finalTotal = Math.round(total * (1 - promo.percent / 100));
-        promoId = promo.id;
+      if (promo) {
+        const applied = applyPromoToTotal(total, promo);
+        if (applied.ok) {
+          finalTotal = applied.finalTotal;
+          promoId = promo.id;
+        }
       }
     }
     const order = await prisma.order.create({
       data: {
-        userId: userSession?.userId ?? null,
-        email,
+        userId: orderUserId,
+        email: emailNorm,
         phone,
         name,
         address,
-        status: "pending",
+        status: "placed",
         promoCode: promoCode || null,
         promoId,
         total: finalTotal,
+        reviewToken: randomBytes(24).toString("hex"),
         items: {
           create: items.map((i) => ({
             productId: i.productId,
@@ -74,13 +96,24 @@ export async function POST(request: NextRequest) {
       },
       include: { items: true },
     });
-    if (promoId && userSession?.userId) {
-      await prisma.promoUse.create({
-        data: { promoId, userId: userSession.userId, orderId: order.id },
-      });
+    if (promoId) {
       await prisma.promo.update({
         where: { id: promoId },
         data: { usedCount: { increment: 1 } },
+      });
+      if (orderUserId) {
+        await prisma.promoUse.create({
+          data: { promoId, userId: orderUserId, orderId: order.id },
+        });
+      }
+    }
+    if (order.userId) {
+      await prisma.userNotification.create({
+        data: {
+          userId: order.userId,
+          title: "Заказ оформлен",
+          body: `Заказ ${order.id.slice(0, 10)}… принят. Сумма ${finalTotal.toLocaleString("ru-RU")} ₽. Статус: ${orderStatusLabel("placed")}.`,
+        },
       });
     }
     return NextResponse.json({ order, orderNumber: order.id });

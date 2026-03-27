@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
+import { parseMarketplaceUrl } from "@/lib/marketplace-links";
+import { parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
 
 export async function PATCH(
   request: NextRequest,
@@ -72,6 +74,12 @@ export async function PATCH(
       ...(body.shelfLifeText !== undefined && { shelfLifeText: body.shelfLifeText?.trim() || null }),
       ...(body.countryText !== undefined && { countryText: body.countryText?.trim() || null }),
       ...(body.inStock !== undefined && { inStock: !!body.inStock }),
+      ...(body.linkWildberries !== undefined && { linkWildberries: parseMarketplaceUrl(body.linkWildberries) }),
+      ...(body.linkOzon !== undefined && { linkOzon: parseMarketplaceUrl(body.linkOzon) }),
+      ...(body.linkYandexMarket !== undefined && { linkYandexMarket: parseMarketplaceUrl(body.linkYandexMarket) }),
+      ...(body.dermatologistVideoUrl !== undefined && {
+        dermatologistVideoUrl: parseDermatologistVideoUrl(body.dermatologistVideoUrl),
+      }),
     },
   });
   return NextResponse.json(product);

@@ -4,11 +4,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import Link from "next/link";
 import type { FeaturedProduct } from "@/lib/featured-products";
 import { useCart } from "@/context/CartContext";
+import { useSiteCopy } from "@/context/SiteCopyContext";
 import { catalogDisplayTitle } from "@/lib/product-title";
 
 const GAP = 12; // gap-3
-const MIN_CARD = 200;
+/** До sm — целимся в 2 карточки в видимой области (раньше 200 + max(160) давали одну «обрезанную») */
+const MIN_CARD = 100;
 const MIN_CARD_SM = 240;
+const ARROW_COL = "w-[2.25rem] shrink-0 sm:w-10";
 
 type Props = { products: FeaturedProduct[] };
 
@@ -21,6 +24,7 @@ function FeaturedCard({
   scrollMode: boolean;
   cardWidthPx: number | null;
 }) {
+  const t = useSiteCopy();
   const { addProduct } = useCart();
   const [added, setAdded] = useState(false);
   const titleCard = catalogDisplayTitle(p.title);
@@ -36,49 +40,66 @@ function FeaturedCard({
     <div
       className={
         scrollMode && cardWidthPx != null
-          ? "flex shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/35 bg-transparent"
+          ? "flex shrink-0 snap-start flex-col self-start overflow-hidden rounded-2xl border border-white/35 bg-transparent"
           : "flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-2xl border border-white/35 bg-transparent"
       }
       style={scrollMode && cardWidthPx != null ? { width: cardWidthPx, flex: "0 0 auto" } : undefined}
     >
-      <Link href={`/catalog/${p.slug}`} className="group flex min-h-0 flex-1 flex-col">
-        <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-t-2xl bg-transparent">
+      <Link href={`/catalog/${p.slug}`} className={`group flex min-h-0 flex-col ${scrollMode ? "" : "flex-1"}`}>
+        {/* Узкая карточка: квадратное фото — заметно больше доля кадра, чем у 4:3 */}
+        <div className="aspect-square w-full shrink-0 overflow-hidden rounded-t-2xl bg-zinc-100/40 sm:aspect-[4/3] sm:bg-transparent">
           <img
             src={p.imageUrl}
             alt=""
-            className="h-full w-full object-cover [transform:translateZ(0)] transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.02]"
+            className="h-full w-full object-cover object-center [transform:translateZ(0)] transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.02]"
           />
         </div>
-        <div className="flex flex-col gap-1 bg-white/60 px-3 pb-2 pt-2.5 backdrop-blur-[2px] sm:gap-1.5 sm:px-3.5 sm:pb-2.5 sm:pt-3">
-          {/* Ровная сетка: 2 строки заголовка + 3 строки описания — у всех карточек одинаковая вертикаль */}
-          <div className="flex min-h-[2.0625rem] flex-col justify-start sm:min-h-[2.40625rem]">
-            <div className="line-clamp-2 text-balance text-xs font-semibold leading-snug text-zinc-900 sm:text-sm">
+        <div className="flex flex-col gap-0 bg-white/60 px-2 pb-1 pt-1.5 backdrop-blur-[2px] sm:gap-0.5 sm:px-3 sm:pb-2 sm:pt-2.5">
+          {/* В карусели — фиксированные «полки» под 2 строки названия и 2 строки описания, иначе карточки разной высоты */}
+          <div
+            className={
+              scrollMode
+                ? "h-[2.125rem] shrink-0 overflow-hidden sm:h-[2.625rem]"
+                : "flex min-h-[2.0625rem] flex-col justify-start sm:min-h-[2.40625rem]"
+            }
+          >
+            <div
+              className={`line-clamp-2 text-xs font-semibold leading-snug text-zinc-900 sm:text-sm ${scrollMode ? "" : "text-balance"}`}
+            >
               {titleCard}
             </div>
           </div>
-          <p className="line-clamp-3 min-h-[3.35rem] text-[11px] leading-relaxed text-zinc-600 sm:min-h-[3.66rem] sm:text-xs sm:leading-relaxed">
+          <p
+            className={
+              scrollMode
+                ? "line-clamp-2 h-[1.875rem] shrink-0 overflow-hidden text-[11px] leading-snug text-zinc-600 sm:h-[2.125rem] sm:text-xs sm:leading-snug"
+                : "line-clamp-2 text-[11px] leading-snug text-zinc-600 sm:line-clamp-3 sm:min-h-[3.66rem] sm:text-xs sm:leading-relaxed"
+            }
+          >
             {p.shortDesc?.trim() ? p.shortDesc : "\u00a0"}
           </p>
         </div>
       </Link>
-      <div className="flex shrink-0 flex-col gap-2 rounded-b-2xl border-t border-zinc-900/10 bg-white/60 px-3 pb-3 pt-2 backdrop-blur-[2px]">
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-xs font-medium tabular-nums sm:text-sm">{p.priceFormatted}</span>
+      <div className="flex shrink-0 flex-col gap-1 rounded-b-2xl border-t border-zinc-900/10 bg-white/60 px-2 pb-1.5 pt-1 backdrop-blur-[2px] sm:gap-1.5 sm:px-3 sm:pb-2 sm:pt-1.5">
+        <div className="flex min-w-0 flex-nowrap items-center justify-between gap-2">
+          <span className="shrink-0 whitespace-nowrap text-xs font-semibold tabular-nums leading-none text-zinc-900 sm:text-sm">
+            {p.priceFormatted}
+          </span>
           <button
             type="button"
             onClick={handleAdd}
-            className={`shrink-0 rounded-xl px-2.5 py-1 text-[11px] font-semibold text-white sm:text-xs ${
+            className={`shrink-0 rounded-xl px-2 py-1.5 text-[11px] font-semibold leading-tight text-white sm:px-3 sm:py-1.5 sm:text-xs ${
               added ? "bg-emerald-600" : "bg-zinc-900 hover:bg-zinc-800"
             }`}
           >
-            {added ? "✓" : "В корзину"}
+            {added ? t("home.featured.added") : t("home.featured.add")}
           </button>
         </div>
         <Link
           href={`/catalog/${p.slug}`}
-          className="block text-center text-[11px] font-medium text-zinc-500 hover:text-zinc-900 sm:text-xs"
+          className="block py-0 text-center text-[11px] font-medium leading-tight text-zinc-500 hover:text-zinc-900 sm:text-xs"
         >
-          Подробнее
+          {t("home.featured.detail")}
         </Link>
       </div>
     </div>
@@ -86,9 +107,22 @@ function FeaturedCard({
 }
 
 export default function HomeFeaturedCarousel({ products }: Props) {
+  const t = useSiteCopy();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [needsArrows, setNeedsArrows] = useState(false);
   const [cardWidthPx, setCardWidthPx] = useState<number | null>(null);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const updateScrollEdges = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const maxScroll = scrollWidth - clientWidth;
+    const eps = 3;
+    setCanScrollPrev(scrollLeft > eps);
+    setCanScrollNext(maxScroll > eps && scrollLeft < maxScroll - eps);
+  }, []);
 
   const scrollToIndex = useCallback(
     (index: number) => {
@@ -123,9 +157,13 @@ export default function HomeFeaturedCarousel({ products }: Props) {
         setCardWidthPx(null);
       } else {
         setNeedsArrows(true);
-        const nFit = Math.max(1, Math.floor((W + GAP) / (minCard + GAP)));
+        let nFit = Math.max(1, Math.floor((W + GAP) / (minCard + GAP)));
+        const minCardPx = 72;
+        if (!sm && n >= 2 && W >= 2 * minCardPx + GAP) {
+          nFit = Math.min(n, Math.max(nFit, 2));
+        }
         const cardW = (W - (nFit - 1) * GAP) / nFit;
-        setCardWidthPx(Math.max(160, cardW));
+        setCardWidthPx(Math.max(minCardPx, cardW));
       }
     };
 
@@ -138,6 +176,21 @@ export default function HomeFeaturedCarousel({ products }: Props) {
       window.removeEventListener("resize", measure);
     };
   }, [products.length]);
+
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || !needsArrows) return;
+    updateScrollEdges();
+    el.addEventListener("scroll", updateScrollEdges, { passive: true });
+    const ro = new ResizeObserver(() => updateScrollEdges());
+    ro.observe(el);
+    window.addEventListener("resize", updateScrollEdges);
+    return () => {
+      el.removeEventListener("scroll", updateScrollEdges);
+      ro.disconnect();
+      window.removeEventListener("resize", updateScrollEdges);
+    };
+  }, [needsArrows, cardWidthPx, products.length, updateScrollEdges]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -179,13 +232,13 @@ export default function HomeFeaturedCarousel({ products }: Props) {
   if (products.length === 0) return null;
 
   const arrowBtn =
-    "flex shrink-0 items-center justify-center self-center rounded-lg p-1 text-zinc-800 transition hover:bg-black/[0.06] hover:text-zinc-900 active:bg-black/[0.1] disabled:pointer-events-none disabled:opacity-30";
+    "flex w-full items-center justify-center self-center rounded-lg p-1 text-zinc-800 transition hover:bg-black/[0.06] hover:text-zinc-900 active:bg-black/[0.1]";
 
   const scrollMode = needsArrows && cardWidthPx != null;
 
   return (
-    <section className="mt-16 bg-transparent" aria-label="Наша продукция">
-      <h2 className="mb-4 text-center text-xl font-bold tracking-tight sm:text-2xl">Наша продукция</h2>
+    <section className="mt-10 bg-transparent sm:mt-12" aria-label={t("home.featured.aria_label")}>
+      <h2 className="mb-2 text-center text-xl font-bold tracking-tight sm:mb-3 sm:text-2xl">{t("home.featured_section_title")}</h2>
       <div
         className={
           needsArrows
@@ -194,19 +247,23 @@ export default function HomeFeaturedCarousel({ products }: Props) {
         }
       >
         {needsArrows ? (
-          <button type="button" aria-label="Предыдущая позиция" onClick={() => scrollByDir(-1)} className={arrowBtn}>
-            <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+          canScrollPrev ? (
+            <button type="button" aria-label={t("home.featured.prev")} onClick={() => scrollByDir(-1)} className={`${ARROW_COL} ${arrowBtn}`}>
+              <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          ) : (
+            <div className={ARROW_COL} aria-hidden />
+          )
         ) : null}
 
         <div
           ref={scrollerRef}
           className={
             needsArrows
-              ? "flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              : "flex min-w-0 justify-center gap-3 overflow-x-hidden overflow-y-hidden pb-2"
+              ? "flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              : "flex min-w-0 justify-center gap-3 overflow-x-hidden overflow-y-hidden pb-0.5"
           }
           style={needsArrows ? { scrollSnapType: "x mandatory" } : undefined}
         >
@@ -216,11 +273,15 @@ export default function HomeFeaturedCarousel({ products }: Props) {
         </div>
 
         {needsArrows ? (
-          <button type="button" aria-label="Следующая позиция" onClick={() => scrollByDir(1)} className={arrowBtn}>
-            <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          canScrollNext ? (
+            <button type="button" aria-label={t("home.featured.next")} onClick={() => scrollByDir(1)} className={`${ARROW_COL} ${arrowBtn}`}>
+              <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ) : (
+            <div className={ARROW_COL} aria-hidden />
+          )
         ) : null}
       </div>
     </section>

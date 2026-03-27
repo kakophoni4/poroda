@@ -21,6 +21,15 @@
 | `DATABASE_URL`   | Строка подключения к PostgreSQL (Supabase или Railway Postgres). |
 | `SESSION_SECRET` | Секрет для сессий (придумайте длинную случайную строку). |
 
+**Онлайн-оплата (эквайринг Альфа-Банк, см. `src/app/api/payment/create/route.ts`):**
+
+| Переменная | Описание |
+|------------|----------|
+| `ALFABANK_USERNAME` | Логин из личного кабинета / договора. |
+| `ALFABANK_PASSWORD` | Пароль. |
+| `ALFABANK_CLIENT_ID` | При необходимости по документации провайдера. |
+| `ALFABANK_API_URL` | Опционально; по умолчанию тестовый шлюз `https://api.uat.all2pay.net/v1`, для боя — URL из договора. |
+
 **Пример для Supabase** (из панели Supabase → Project Settings → Database):
 
 ```env

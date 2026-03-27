@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
+import SiteQuestionForm from "@/components/SiteQuestionForm";
 
 const items: { q: string; a: string }[] = [
   {
@@ -11,7 +12,7 @@ const items: { q: string; a: string }[] = [
   },
   {
     q: "Какие способы оплаты доступны на сайте?",
-    a: "Оплатить заказ можно с помощью любой банковской карты, выпущенной в Российской Федерации, или через систему СБП.",
+    a: "Онлайн-оплата на сайте проходит через эквайринг Альфа-Банка: банковской картой РФ или через СБП (если доступно на странице оплаты). Также можно выбрать оплату при получении — уточните при оформлении.",
   },
   {
     q: "Как можно отследить мой заказ?",
@@ -94,7 +95,7 @@ export default function FaqPage() {
           {items.map((it, index) => (
             <div
               key={it.q}
-              className="liquidGlass-dock overflow-hidden rounded-2xl border border-white/40 transition-shadow hover:shadow-md"
+              className="liquidGlass-dock liquidGlass-dock--readable overflow-hidden rounded-2xl border border-white/40 transition-shadow hover:shadow-md"
             >
               <button
                 type="button"
@@ -124,6 +125,16 @@ export default function FaqPage() {
             </div>
           ))}
         </div>
+
+        <section className="mx-auto mt-14 max-w-lg text-center">
+          <h2 className="text-xl font-semibold text-zinc-900">Задать вопрос</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-zinc-600">
+            Не нашли ответ выше? Напишите — сообщение попадёт в админ-панель, мы свяжемся с вами.
+          </p>
+          <div className="frost-panel mx-auto mt-6 rounded-3xl p-6 text-left sm:p-8">
+            <SiteQuestionForm idPrefix="faq-q" />
+          </div>
+        </section>
       </Container>
     </PageShell>
   );

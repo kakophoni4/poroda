@@ -32,6 +32,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         shelfLifeText?: string | null;
         countryText?: string | null;
         inStock?: boolean;
+        linkWildberries?: string | null;
+        linkOzon?: string | null;
+        linkYandexMarket?: string | null;
+        dermatologistVideoUrl?: string | null;
       };
       product = {
         id: p.id, slug: p.slug, title: p.title, shortDesc: p.shortDesc ?? undefined,
@@ -56,6 +60,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         shelfLifeText: pd.shelfLifeText ?? undefined,
         countryText: pd.countryText ?? undefined,
         inStock: pd.inStock !== false,
+        linkWildberries: pd.linkWildberries ?? undefined,
+        linkOzon: pd.linkOzon ?? undefined,
+        linkYandexMarket: pd.linkYandexMarket ?? undefined,
+        dermatologistVideoUrl: pd.dermatologistVideoUrl ?? undefined,
       };
     }
   } catch {

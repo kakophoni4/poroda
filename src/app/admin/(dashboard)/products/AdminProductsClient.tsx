@@ -41,6 +41,10 @@ const emptyForm = (): {
   inStock: boolean;
   isPromo: boolean;
   isBestseller: boolean;
+  linkWildberries: string;
+  linkOzon: string;
+  linkYandexMarket: string;
+  dermatologistVideoUrl: string;
 } => ({
   slug: "",
   title: "",
@@ -75,6 +79,10 @@ const emptyForm = (): {
   shelfLifeText: "",
   countryText: "",
   inStock: true,
+  linkWildberries: "",
+  linkOzon: "",
+  linkYandexMarket: "",
+  dermatologistVideoUrl: "",
 });
 
 function ProductForm({
@@ -531,6 +539,54 @@ function ProductForm({
               />
             </div>
           </div>
+          <div className="rounded-xl border border-violet-200/80 bg-violet-50/40 p-4">
+            <p className="text-xs font-semibold text-zinc-800">Ссылки на маркетплейсы</p>
+            <p className="mt-1 text-[11px] leading-snug text-zinc-600">
+              Полная ссылка на карточку товара. Если поле заполнено — на сайте показывается кнопка «Купить на …» рядом с корзиной.
+            </p>
+            <div className="mt-3 space-y-2">
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Wildberries</label>
+                <input
+                  type="url"
+                  value={form.linkWildberries}
+                  onChange={(e) => setForm((f) => ({ ...f, linkWildberries: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  placeholder="https://www.wildberries.ru/..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Ozon</label>
+                <input
+                  type="url"
+                  value={form.linkOzon}
+                  onChange={(e) => setForm((f) => ({ ...f, linkOzon: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  placeholder="https://www.ozon.ru/..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Яндекс Маркет</label>
+                <input
+                  type="url"
+                  value={form.linkYandexMarket}
+                  onChange={(e) => setForm((f) => ({ ...f, linkYandexMarket: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  placeholder="https://market.yandex.ru/..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Видео дерматолога (обзор товара)</label>
+                <input
+                  type="url"
+                  value={form.dermatologistVideoUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, dermatologistVideoUrl: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  placeholder="YouTube, Vimeo или прямая ссылка на .mp4 / .webm"
+                />
+              </div>
+            </div>
+          </div>
         </div>
         <div className="mt-6 flex gap-2">
           <button
@@ -612,6 +668,10 @@ export default function AdminProductsClient({
       inStock: (p as { inStock?: boolean }).inStock !== false,
       isPromo: (p as { isPromo?: boolean }).isPromo ?? false,
       isBestseller: (p as { isBestseller?: boolean }).isBestseller ?? false,
+      linkWildberries: (p as { linkWildberries?: string | null }).linkWildberries || "",
+      linkOzon: (p as { linkOzon?: string | null }).linkOzon || "",
+      linkYandexMarket: (p as { linkYandexMarket?: string | null }).linkYandexMarket || "",
+      dermatologistVideoUrl: (p as { dermatologistVideoUrl?: string | null }).dermatologistVideoUrl || "",
     });
   };
 

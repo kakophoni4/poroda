@@ -9,7 +9,31 @@ export async function PATCH(
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
+  const existing = await prisma.promo.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Не найден" }, { status: 404 });
+
   const body = await request.json();
+  const isDerm =
+    body.isDermatologist !== undefined ? !!body.isDermatologist : existing.isDermatologist;
+
+  let rewardPercent: number | null =
+    body.dermatologistRewardPercent !== undefined
+      ? body.dermatologistRewardPercent === null || body.dermatologistRewardPercent === ""
+        ? null
+        : Math.round(Number(body.dermatologistRewardPercent))
+      : existing.dermatologistRewardPercent;
+
+  if (!isDerm) rewardPercent = null;
+  else {
+    const r = rewardPercent ?? NaN;
+    if (!Number.isFinite(r) || r < 0 || r > 100) {
+      return NextResponse.json(
+        { error: "Для промокода дерматолога укажите процент вознаграждения от 0 до 100" },
+        { status: 400 },
+      );
+    }
+  }
+
   const promo = await prisma.promo.update({
     where: { id },
     data: {
@@ -20,6 +44,8 @@ export async function PATCH(
       ...(body.validFrom != null && { validFrom: body.validFrom ? new Date(body.validFrom) : null }),
       ...(body.validTo != null && { validTo: body.validTo ? new Date(body.validTo) : null }),
       ...(body.active != null && { active: !!body.active }),
+      isDermatologist: isDerm,
+      dermatologistRewardPercent: rewardPercent,
     },
   });
   return NextResponse.json(promo);

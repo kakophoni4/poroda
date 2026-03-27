@@ -6,6 +6,8 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import { useRouter } from "next/navigation";
 import { getProductImages, type Product } from "@/lib/catalog-data";
 import { useCart } from "@/context/CartContext";
+import { useSiteCopy } from "@/context/SiteCopyContext";
+import DermatologistVideoModal from "@/components/DermatologistVideoModal";
 
 const categoryToFolder: Record<string, number> = { cleansing: 1, toners: 2, serums: 3, creams: 4, masks: 5, sets: 6 };
 
@@ -18,6 +20,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function ProductPageClient({ product }: { product: Product }) {
+  const t = useSiteCopy();
   const router = useRouter();
   const { lines, addProduct, setQuantity, removeProduct, hydrated } = useCart();
   const [justAdded, setJustAdded] = useState(false);
@@ -27,6 +30,13 @@ export default function ProductPageClient({ product }: { product: Product }) {
     () => getProductImages(product, `/images/poroda/${categoryToFolder[product.categorySlug] ?? 1}/1.jpg`),
     [product]
   );
+  const videoUrl = (product.dermatologistVideoUrl || "").trim();
+  const hasVideo = Boolean(videoUrl);
+  const photoCount = images.length;
+  const videoIndex = photoCount;
+  const totalThumbs = photoCount + (hasVideo ? 1 : 0);
+  const videoPosterSrc = images[photoCount - 1] ?? images[0] ?? "";
+
   const [mainIndex, setMainIndex] = useState(0);
   /** true = от lg (1024px): до этого показываем только 2 миниатюры в ряд (CSS + порог для стрелок). */
   const [isLgUp, setIsLgUp] = useState(false);
@@ -38,6 +48,43 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const thumbsRef = useRef<HTMLDivElement>(null);
 
   const line = lines.find((l) => l.productId === product.id);
+
+  const isVideoSlide = hasVideo && mainIndex === videoIndex;
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const [dermaPromptVisible, setDermaPromptVisible] = useState(false);
+  const dermaPromptKey = useMemo(() => `poroda_derma_prompt_${product.id}`, [product.id]);
+
+  useEffect(() => {
+    if (!hasVideo) {
+      setDermaPromptVisible(false);
+      return;
+    }
+    try {
+      if (sessionStorage.getItem(dermaPromptKey) === "1") return;
+    } catch {
+      /* ignore */
+    }
+    setDermaPromptVisible(true);
+  }, [hasVideo, dermaPromptKey]);
+
+  const dismissDermaPrompt = useCallback(() => {
+    try {
+      sessionStorage.setItem(dermaPromptKey, "1");
+    } catch {
+      /* ignore */
+    }
+    setDermaPromptVisible(false);
+  }, [dermaPromptKey]);
+
+  const openDermaVideoModal = useCallback(() => {
+    try {
+      sessionStorage.setItem(dermaPromptKey, "1");
+    } catch {
+      /* ignore */
+    }
+    setDermaPromptVisible(false);
+    setVideoModalOpen(true);
+  }, [dermaPromptKey]);
 
   useLayoutEffect(() => {
     setMainIndex(0);
@@ -57,15 +104,29 @@ export default function ProductPageClient({ product }: { product: Product }) {
   }, [hydrated, line?.productId, line?.quantity]);
 
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (photoCount < 1) return;
+    if (!hasVideo && photoCount <= 1) return;
+
     const id = window.setInterval(() => {
-      setMainIndex((i) => (i + 1) % images.length);
+      setMainIndex((i) => {
+        if (!hasVideo) {
+          if (photoCount <= 1) return 0;
+          return (i + 1) % photoCount;
+        }
+        if (i === videoIndex) return i;
+        if (i < photoCount - 1) return i + 1;
+        return 0;
+      });
     }, 10000);
     return () => window.clearInterval(id);
-  }, [images.length]);
+  }, [photoCount, hasVideo, videoIndex]);
 
-  /** Плавная смена главного фото (клик / автопрокрутка) */
+  /** Плавная смена главного фото (клик / автопрокрутка); слайд с видео без кроссфейда картинок */
   useEffect(() => {
+    if (isVideoSlide) {
+      mainImgFadeSkipRef.current = true;
+      return;
+    }
     const next = images[mainIndex] ?? images[0];
     if (mainImgFadeSkipRef.current) {
       mainImgFadeSkipRef.current = false;
@@ -82,7 +143,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
       requestAnimationFrame(() => setMainImgOpacity(1));
     }, 220);
     return () => window.clearTimeout(t);
-  }, [mainIndex, images]);
+  }, [mainIndex, images, isVideoSlide]);
 
   const scrollThumbs = useCallback((dir: -1 | 1) => {
     const el = thumbsRef.current;
@@ -99,9 +160,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
   }, []);
 
   const maxThumbsPerRow = isLgUp ? 4 : 2;
-  const visibleThumbCols = Math.min(images.length, maxThumbsPerRow);
+  const visibleThumbCols = Math.min(totalThumbs, maxThumbsPerRow);
   /** Все миниатюры помещаются в один ряд — grid без скролла, иначе не вылезает «кусок» соседней */
-  const thumbsNeedScroll = images.length > maxThumbsPerRow;
+  const thumbsNeedScroll = totalThumbs > maxThumbsPerRow;
 
   useEffect(() => {
     fetch("/api/view", {
@@ -151,6 +212,34 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   const inStock = product.inStock !== false;
   const scientistsTitle = product.scientistsTitle?.trim() || "Что говорят ученые?";
+
+  const marketplaceLinks = useMemo(() => {
+    const out: { href: string; label: string; abbr: string }[] = [];
+    if (product.linkWildberries?.trim())
+      out.push({ href: product.linkWildberries.trim(), label: "Wildberries", abbr: "WB" });
+    if (product.linkOzon?.trim()) out.push({ href: product.linkOzon.trim(), label: "Ozon", abbr: "Ozon" });
+    if (product.linkYandexMarket?.trim())
+      out.push({ href: product.linkYandexMarket.trim(), label: "Яндекс Маркет", abbr: "Я.Маркет" });
+    return out;
+  }, [product.linkWildberries, product.linkOzon, product.linkYandexMarket]);
+
+  const marketplaceRow =
+    marketplaceLinks.length > 0 ? (
+      <div className="flex w-full flex-wrap gap-1.5 min-[340px]:gap-2">
+        {marketplaceLinks.map(({ href, label, abbr }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass-subtle flex min-h-[40px] min-w-0 flex-1 basis-[calc(50%-0.1875rem)] items-center justify-center rounded-xl border border-white/45 px-1.5 text-center text-[10px] font-semibold leading-tight text-zinc-800 shadow-sm transition-[transform,background-color] duration-300 ease-out hover:bg-white/50 active:scale-[0.98] min-[340px]:basis-auto min-[340px]:px-3 min-[340px]:text-xs sm:min-h-[44px] sm:rounded-2xl sm:text-sm"
+          >
+            <span className="max-[339px]:hidden">Купить на {label}</span>
+            <span className="min-[340px]:hidden">{abbr}</span>
+          </a>
+        ))}
+      </div>
+    ) : null;
 
   const handleAddToCart = () => {
     if (!inStock) return;
@@ -223,7 +312,42 @@ export default function ProductPageClient({ product }: { product: Product }) {
         {/* Левая колонка: галерея + кнопки */}
         <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2 lg:sticky lg:top-20 lg:max-w-xl lg:self-start xl:top-24">
           <div className="liquidGlass-dock relative aspect-square w-full overflow-hidden rounded-xl border border-white/40 shadow-sm sm:rounded-2xl lg:rounded-3xl">
-            {displayedMainSrc ? (
+            {isVideoSlide ? (
+              <button
+                type="button"
+                onClick={openDermaVideoModal}
+                className="relative block h-full w-full text-left outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-zinc-900"
+                aria-label={t("derma.open_aria")}
+              >
+                {videoPosterSrc ? (
+                  <Image
+                    src={videoPosterSrc}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1024px) 42vw, (max-width: 1280px) 40vw, 520px"
+                    quality={85}
+                    className="object-cover [transform:translateZ(0)]"
+                    style={{
+                      objectPosition: `${product.imageFocusX ?? 50}% ${product.imageFocusY ?? 50}%`,
+                    }}
+                    priority
+                    unoptimized={videoPosterSrc.startsWith("/uploads/")}
+                  />
+                ) : (
+                  <div className="grid-lines h-full w-full bg-zinc-200/40" />
+                )}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-t from-black/60 via-black/35 to-black/25">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow-lg ring-2 ring-white/80 sm:h-16 sm:w-16">
+                    <svg className="ml-1 h-7 w-7 sm:h-8 sm:w-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </span>
+                  <span className="max-w-[90%] px-2 text-center text-[10px] font-semibold uppercase tracking-wide text-white drop-shadow sm:text-xs">
+                    {t("derma.slide_label")}
+                  </span>
+                </div>
+              </button>
+            ) : displayedMainSrc ? (
               <Image
                 src={displayedMainSrc}
                 alt=""
@@ -268,9 +392,9 @@ export default function ProductPageClient({ product }: { product: Product }) {
             )}
           </div>
 
-          {images.length > 1 && (
+          {totalThumbs > 1 && (
             <div className="relative mt-2 w-full min-w-0 sm:mt-3">
-              {thumbsNeedScroll && images.length > visibleThumbCols && (
+              {thumbsNeedScroll && totalThumbs > visibleThumbCols && (
                 <button
                   type="button"
                   aria-label="Предыдущие фото"
@@ -282,7 +406,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                   </svg>
                 </button>
               )}
-              {thumbsNeedScroll && images.length > visibleThumbCols && (
+              {thumbsNeedScroll && totalThumbs > visibleThumbCols && (
                 <button
                   type="button"
                   aria-label="Следующие фото"
@@ -297,7 +421,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
               <div
                 ref={thumbsNeedScroll ? thumbsRef : undefined}
                 onWheel={(e) => {
-                  if (!thumbsNeedScroll || images.length <= visibleThumbCols) return;
+                  if (!thumbsNeedScroll || totalThumbs <= visibleThumbCols) return;
                   if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
                   e.preventDefault();
                   thumbsRef.current?.scrollBy({ left: e.deltaY, behavior: "smooth" });
@@ -334,6 +458,49 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     />
                   </button>
                 ))}
+                {hasVideo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMainIndex(videoIndex);
+                      openDermaVideoModal();
+                    }}
+                    className={`relative box-border aspect-square min-h-0 overflow-hidden rounded-xl transition-[border-color,transform,box-shadow] duration-300 ease-out will-change-transform active:scale-[0.98] ${
+                      thumbsNeedScroll
+                        ? "w-[calc((100%-0.25rem)/2)] min-w-[calc((100%-0.25rem)/2)] shrink-0 snap-start sm:w-[calc((100%-0.5rem)/2)] sm:min-w-[calc((100%-0.5rem)/2)] lg:w-[calc((100%-1.5rem)/4)] lg:min-w-[calc((100%-1.5rem)/4)]"
+                        : "w-full min-w-0"
+                    } ${
+                      mainIndex === videoIndex
+                        ? "border-2 border-zinc-900"
+                        : "border-2 border-zinc-300/70 hover:border-zinc-400/90"
+                    }`}
+                    aria-label={t("derma.open_aria")}
+                  >
+                    {videoPosterSrc ? (
+                      <Image
+                        src={videoPosterSrc}
+                        alt=""
+                        fill
+                        sizes="120px"
+                        quality={75}
+                        className="object-cover [transform:translateZ(0)]"
+                        unoptimized={videoPosterSrc.startsWith("/uploads/")}
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-zinc-300/60" />
+                    )}
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-zinc-900 shadow sm:h-10 sm:w-10">
+                        <svg className="ml-0.5 h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </span>
+                    </div>
+                    <span className="pointer-events-none absolute bottom-1 left-1 right-1 truncate text-center text-[9px] font-bold uppercase tracking-wide text-white drop-shadow sm:text-[10px]">
+                      {t("derma.thumb_label")}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -365,6 +532,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     Купить
                   </button>
                 </div>
+                {marketplaceRow}
                 {favoritesLoaded && (
                   <button
                     type="button"
@@ -382,6 +550,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                 <span className="flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-xl bg-zinc-300 px-2 text-center text-[11px] font-semibold text-zinc-600 sm:min-h-[48px] sm:rounded-2xl sm:text-sm">
                   Нет в наличии
                 </span>
+                {marketplaceRow}
                 {favoritesLoaded && (
                   <button
                     type="button"
@@ -602,6 +771,36 @@ export default function ProductPageClient({ product }: { product: Product }) {
               <p className="mt-1 whitespace-pre-line text-sm text-zinc-600">{product.components}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {hasVideo && videoUrl && (
+        <DermatologistVideoModal open={videoModalOpen} videoUrl={videoUrl} onClose={() => setVideoModalOpen(false)} />
+      )}
+
+      {hasVideo && dermaPromptVisible && (
+        <div
+          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-[95] w-[min(calc(100vw-1.5rem),18.5rem)] liquidGlass-dock rounded-2xl border border-white/50 p-3 shadow-xl sm:p-4"
+          role="dialog"
+          aria-label={t("derma.prompt_dialog_aria")}
+        >
+          <p className="text-xs font-medium leading-snug text-zinc-800 sm:text-sm">{t("derma.prompt_text")}</p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={openDermaVideoModal}
+              className="min-h-[40px] flex-1 rounded-xl bg-zinc-900 py-2 text-xs font-semibold text-white hover:bg-zinc-800 sm:text-sm"
+            >
+              {t("derma.prompt_yes")}
+            </button>
+            <button
+              type="button"
+              onClick={dismissDermaPrompt}
+              className="min-h-[40px] flex-1 rounded-xl border-2 border-zinc-300 py-2 text-xs font-semibold text-zinc-800 hover:bg-white/50 sm:text-sm"
+            >
+              {t("derma.prompt_no")}
+            </button>
+          </div>
         </div>
       )}
     </article>

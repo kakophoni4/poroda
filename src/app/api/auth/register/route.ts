@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { hashPassword, setUserSession } from "@/lib/auth";
+import { backfillPromoUseForUser } from "@/lib/backfill-promo-use";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +23,11 @@ export async function POST(request: NextRequest) {
         phone: phone?.trim() || null,
       },
     });
+    await prisma.order.updateMany({
+      where: { userId: null, email: { equals: user.email, mode: "insensitive" } },
+      data: { userId: user.id },
+    });
+    await backfillPromoUseForUser(user.id);
     await setUserSession({ userId: user.id, email: user.email });
     return NextResponse.json({ ok: true, user: { id: user.id, email: user.email, name: user.name } });
   } catch (e) {

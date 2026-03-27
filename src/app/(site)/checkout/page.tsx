@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
-import Breadcrumbs from "@/components/Breadcrumbs";
 import CheckoutClient from "./CheckoutClient";
 import { products as staticProducts } from "@/lib/catalog-data";
 import { prisma } from "@/lib/db";
+import { getSiteCopyMap } from "@/lib/site-copy-server";
 
 export default async function CheckoutPage() {
+  const copy = await getSiteCopyMap();
   let products = staticProducts;
   try {
     const dbProducts = await prisma.product.findMany({ include: { category: { select: { slug: true, title: true } } } });
@@ -30,8 +31,7 @@ export default async function CheckoutPage() {
   return (
     <PageShell>
       <Container>
-        <Breadcrumbs items={[{ href: "/catalog", label: "Продукция" }, { label: "Оформление заказа" }]} />
-        <h1 className="mt-4 text-3xl font-semibold">Оформление заказа</h1>
+        <h1 className="mt-4 text-3xl font-semibold">{copy["checkout.title"]}</h1>
         <Suspense fallback={<div className="liquidGlass-dock mt-8 h-64 animate-pulse rounded-3xl border border-white/40" />}>
           <CheckoutClient products={products} />
         </Suspense>

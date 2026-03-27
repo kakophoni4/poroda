@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
+import { parseMarketplaceUrl } from "@/lib/marketplace-links";
+import { parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -51,6 +53,10 @@ export async function POST(request: NextRequest) {
     shelfLifeText,
     countryText,
     inStock,
+    linkWildberries,
+    linkOzon,
+    linkYandexMarket,
+    dermatologistVideoUrl,
   } = body as {
     slug: string;
     title: string;
@@ -85,6 +91,10 @@ export async function POST(request: NextRequest) {
     shelfLifeText?: string;
     countryText?: string;
     inStock?: boolean;
+    linkWildberries?: string;
+    linkOzon?: string;
+    linkYandexMarket?: string;
+    dermatologistVideoUrl?: string;
   };
   if (!slug || !title || !categoryId || price == null) {
     return NextResponse.json({ error: "slug, title, categoryId, price обязательны" }, { status: 400 });
@@ -142,6 +152,10 @@ export async function POST(request: NextRequest) {
       shelfLifeText: shelfLifeText?.trim() || null,
       countryText: countryText?.trim() || null,
       inStock: inStock !== false,
+      linkWildberries: parseMarketplaceUrl(linkWildberries),
+      linkOzon: parseMarketplaceUrl(linkOzon),
+      linkYandexMarket: parseMarketplaceUrl(linkYandexMarket),
+      dermatologistVideoUrl: parseDermatologistVideoUrl(dermatologistVideoUrl),
     },
   });
   return NextResponse.json(product);
