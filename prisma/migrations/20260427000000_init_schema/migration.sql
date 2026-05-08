@@ -1,4 +1,3 @@
-[dotenv@17.3.1] injecting env (26) from .env -- tip: ЁЯЫбя╕П auth for agents: https://vestauth.com
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
