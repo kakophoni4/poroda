@@ -59,7 +59,9 @@ export default function QuizPopup() {
 
   /** На админке не крутим квиз и закрываем окно при переходе */
   useEffect(() => {
-    if (!shouldTrackIdle && visible) setVisible(false);
+    if (!shouldTrackIdle && visible) {
+      queueMicrotask(() => setVisible(false));
+    }
   }, [shouldTrackIdle, visible]);
 
   useEffect(() => {
@@ -143,19 +145,23 @@ export default function QuizPopup() {
   }, [visible, shouldTrackIdle]);
 
   useLayoutEffect(() => {
-    if (visible && currentQuestion) setOverlayMounted(true);
+    if (visible && currentQuestion) {
+      queueMicrotask(() => setOverlayMounted(true));
+    }
   }, [visible, currentQuestion]);
 
   useEffect(() => {
     if (!visible) {
       quizOpenedAnimRef.current = false;
-      setOverlayIn(false);
+      queueMicrotask(() => {
+        setOverlayIn(false);
+      });
       const t = window.setTimeout(() => setOverlayMounted(false), QUIZ_PANEL_MS);
       return () => window.clearTimeout(t);
     }
     if (!currentQuestion) return;
     if (quizOpenedAnimRef.current) {
-      setOverlayIn(true);
+      queueMicrotask(() => setOverlayIn(true));
       return;
     }
     let inner = 0;
@@ -208,7 +214,7 @@ export default function QuizPopup() {
       }
     }
     if (answer.linkUrl?.trim()) {
-      window.location.href = answer.linkUrl.trim();
+      window.location.assign(answer.linkUrl.trim());
       return;
     }
     handleClose();

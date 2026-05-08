@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
+import { parseMinOrderTotal } from "@/lib/min-order-total";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
@@ -34,6 +38,13 @@ export async function PATCH(
     }
   }
 
+  let minOrderTotalValue: number | null | undefined;
+  if (body.minOrderTotal !== undefined) {
+    const p = parseMinOrderTotal((body as { minOrderTotal?: unknown }).minOrderTotal);
+    if (!p.ok) return NextResponse.json({ error: p.error }, { status: 400 });
+    minOrderTotalValue = p.value;
+  }
+
   const promo = await prisma.promo.update({
     where: { id },
     data: {
@@ -44,6 +55,7 @@ export async function PATCH(
       ...(body.validFrom != null && { validFrom: body.validFrom ? new Date(body.validFrom) : null }),
       ...(body.validTo != null && { validTo: body.validTo ? new Date(body.validTo) : null }),
       ...(body.active != null && { active: !!body.active }),
+      ...(minOrderTotalValue !== undefined && { minOrderTotal: minOrderTotalValue }),
       isDermatologist: isDerm,
       dermatologistRewardPercent: rewardPercent,
     },
@@ -52,9 +64,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;

@@ -1,4 +1,4 @@
--- Выполни в Supabase: SQL Editor → New query → вставь этот код → Run.
+-- Легаси: выполни в одной сессии SQL к PostgreSQL (psql, GUI-агент), если нет npx prisma migrate deploy.
 -- Добавляет недостающие колонки в Product и таблицу UserFavorite (если их ещё нет).
 
 -- Колонки Product (если ошибка "column does not exist")

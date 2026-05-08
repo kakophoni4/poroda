@@ -2,7 +2,7 @@ import type { Promo } from "@prisma/client";
 
 export type PromoForApply = Pick<
   Promo,
-  "percent" | "discountRub" | "maxUses" | "usedCount" | "validFrom" | "validTo" | "active"
+  "percent" | "discountRub" | "maxUses" | "usedCount" | "validFrom" | "validTo" | "active" | "minOrderTotal"
 >;
 
 /** Проверка срока и лимита использований + расчёт итога заказа */
@@ -15,6 +15,13 @@ export function applyPromoToTotal(
   if (promo.validFrom && promo.validFrom > now) return { ok: false, reason: "Промокод ещё не действует" };
   if (promo.validTo && promo.validTo < now) return { ok: false, reason: "Срок действия промокода истёк" };
   if (promo.maxUses != null && promo.usedCount >= promo.maxUses) return { ok: false, reason: "Промокод уже использован" };
+
+  if (promo.minOrderTotal != null && total < promo.minOrderTotal) {
+    return {
+      ok: false,
+      reason: `Промокод действует при сумме заказа от ${promo.minOrderTotal} ₽`,
+    };
+  }
 
   const rub = promo.discountRub ?? 0;
   if (rub > 0) {

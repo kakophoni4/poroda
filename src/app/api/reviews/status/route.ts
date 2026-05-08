@@ -7,14 +7,16 @@ import { normalizeOrderStatus, orderStatusLabel } from "@/lib/order-status";
 /** Статус отзыва по заказу; доступ по секретному token или по сессии владельца заказа */
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const orderId = url.searchParams.get("orderId")?.trim();
+  const orderIdParam = url.searchParams.get("orderId")?.trim();
   const token = url.searchParams.get("token")?.trim();
-  if (!orderId) {
-    return NextResponse.json({ error: "Нужен orderId" }, { status: 400 });
+  if (!orderIdParam && !token) {
+    return NextResponse.json({ error: "Нужен orderId или token" }, { status: 400 });
   }
   const session = await getUserSession();
   try {
-    const order = await findOrderForReviewAccess(orderId, { token: token || null, userId: session?.userId });
+    const order = orderIdParam
+      ? await findOrderForReviewAccess(orderIdParam, { token: token || null, userId: session?.userId })
+      : await prisma.order.findFirst({ where: { reviewToken: token! } });
     if (!order) {
       return NextResponse.json({ error: "Не найдено" }, { status: 404 });
     }
@@ -24,9 +26,13 @@ export async function GET(request: NextRequest) {
       select: { status: true, rewardCode: true },
     });
     const hasReview = !!review;
-    const canReview = statusNorm === "delivered" && !hasReview;
+    const payOk = order.paymentStatus === "paid";
+    const deliveryOk =
+      order.paymentMethod !== "on_delivery" || statusNorm === "delivered";
+    const canReview = payOk && deliveryOk && !hasReview;
     if (!review) {
       return NextResponse.json({
+        orderId: order.id,
         hasReview: false,
         status: null as string | null,
         rewardCode: null as string | null,
@@ -36,9 +42,10 @@ export async function GET(request: NextRequest) {
       });
     }
     return NextResponse.json({
+      orderId: order.id,
       hasReview: true,
       status: review.status,
-      rewardCode: review.status === "approved" ? review.rewardCode ?? null : null,
+      rewardCode: review.rewardCode ?? null,
       orderStatus: order.status,
       orderStatusLabel: orderStatusLabel(order.status),
       canReview: false,

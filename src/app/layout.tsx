@@ -8,6 +8,7 @@ import CartDock from "@/components/CartDock";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import PageTransition from "@/components/PageTransition";
 import QuizPopup from "@/components/QuizPopup";
+import IntroSplashOverlay from "@/components/IntroSplashOverlay";
 import { getSiteCopyMap } from "@/lib/site-copy-server";
 
 const manrope = Manrope({
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Footer />
             <CookieConsentBanner />
             <QuizPopup />
+            <IntroSplashOverlay />
           </div>
         </Providers>
       </body>

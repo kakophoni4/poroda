@@ -1,4 +1,5 @@
 import Container from "@/components/Container";
+import Logo from "@/components/Logo";
 import Link from "next/link";
 import AdminLogout from "./AdminLogout";
 
@@ -13,6 +14,7 @@ const adminNav = [
   { href: "/admin/products", label: "Продукция" },
   { href: "/admin/promos", label: "Скидки" },
   { href: "/admin/mailings", label: "Рассылки" },
+  { href: "/admin/stats", label: "Статистика" },
   { href: "/admin/analytics", label: "Аналитика" },
   { href: "/admin/users", label: "Клиенты" },
   { href: "/admin/reviews", label: "Отзывы" },
@@ -26,6 +28,9 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         <div className="flex flex-col gap-8 lg:flex-row">
           <aside className="lg:w-52 shrink-0">
             <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+              <Link href="/" className="mb-3 inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400">
+                <Logo variant="admin" />
+              </Link>
               <div className="text-sm font-semibold text-zinc-500">Админ-панель</div>
               <nav className="mt-4 flex flex-col gap-1">
                 {adminNav.map((item) => (

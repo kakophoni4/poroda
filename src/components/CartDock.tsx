@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useSiteCopy } from "@/context/SiteCopyContext";
@@ -40,10 +40,6 @@ export default function CartDock() {
       ro?.disconnect();
     };
   }, []);
-
-  useLayoutEffect(() => {
-    if (open) setPanelMounted(true);
-  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -149,7 +145,13 @@ export default function CartDock() {
       >
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() =>
+            setOpen((v) => {
+              const next = !v;
+              if (next) setPanelMounted(true);
+              return next;
+            })
+          }
           className="glass-subtle pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl border border-white/45 px-3 py-2.5 text-zinc-900 shadow-md transition-[transform,background-color,box-shadow] duration-200 ease-out hover:bg-white/45 active:scale-[0.98]"
           aria-expanded={open}
           aria-haspopup="dialog"

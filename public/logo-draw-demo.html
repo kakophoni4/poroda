@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PORODA — демо: слои 1–4</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1rem 2rem;
+        background: #e4e4e7;
+        font-family: system-ui, sans-serif;
+      }
+      .banner {
+        max-width: 38rem;
+        text-align: center;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        color: #3f3f46;
+        background: #fff;
+        border: 1px solid #d4d4d8;
+        border-radius: 0.75rem;
+        padding: 0.65rem 0.9rem;
+      }
+      h1 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #18181b;
+        text-align: center;
+      }
+      .compare {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        justify-content: center;
+        gap: 1.25rem;
+        width: 100%;
+        max-width: 52rem;
+      }
+      .panel {
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      }
+      .panel.ref {
+        background: #fafafa;
+        padding: 1.25rem;
+        flex: 0 1 auto;
+        border: 1px solid #d4d4d8;
+      }
+      .ref-stage {
+        min-height: 180px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+      }
+      .ref-card {
+        background: #fff;
+        border: 1px solid #e4e4e7;
+        border-radius: 10px;
+        padding: 12px;
+        max-width: min(300px, 90vw);
+      }
+      .panel.ref img.ref-raster {
+        display: none;
+        max-width: 100%;
+        height: auto;
+        vertical-align: middle;
+      }
+      .panel.ref img.ref-raster.is-visible {
+        display: block;
+      }
+      .ref-placeholder {
+        text-align: center;
+        max-width: 280px;
+        color: #52525b;
+        font-size: 0.75rem;
+        line-height: 1.45;
+      }
+      .ref-placeholder code {
+        background: #f4f4f5;
+        color: #18181b;
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+        font-size: 0.68rem;
+      }
+      .panel.ref p {
+        margin: 0 0 0.6rem;
+        font-size: 0.72rem;
+        color: #52525b;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .ref-upload {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.25rem;
+        font-size: 0.72rem;
+        color: #52525b;
+      }
+      .panel.anim {
+        background: #fafafa;
+        padding: 1.5rem 1.75rem;
+        flex: 0 1 auto;
+        min-width: min(340px, 100%);
+        border: 1px solid #d4d4d8;
+        min-height: 240px;
+      }
+      .panel.anim > p.title {
+        margin: 0 0 0.35rem;
+        font-size: 0.72rem;
+        color: #52525b;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .anim-note {
+        margin: 0 0 0.85rem;
+        font-size: 0.72rem;
+        color: #71717a;
+        line-height: 1.4;
+      }
+      .wipe-frame {
+        max-width: min(340px, 92vw);
+        margin: 0 auto;
+      }
+      .wipe-stage {
+        display: flex;
+        justify-content: center;
+        padding: 14px;
+        background: linear-gradient(135deg, #f4f4f5 0%, #e4e4e7 100%);
+        border: 1px solid #d4d4d8;
+        border-radius: 12px;
+      }
+      .wipe-stage svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: center;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 999px;
+        padding: 0.55rem 1.2rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        background: #18181b;
+        color: #fff;
+      }
+      button:hover {
+        background: #27272a;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.85rem;
+        color: #3f3f46;
+      }
+      input[type="range"] {
+        width: 140px;
+      }
+      p.hint {
+        margin: 0;
+        max-width: 36rem;
+        text-align: center;
+        font-size: 0.78rem;
+        line-height: 1.55;
+        color: #52525b;
+      }
+      code {
+        font-size: 0.85em;
+        background: #f4f4f5;
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="banner">
+      Четыре PNG в одном кадре: каждый следующий слой <strong>стартует на середине</strong> анимации предыдущего (половина длительности слоя). Ниже — <strong>GIF</strong> с отдельной настройкой длительности слоя.
+    </p>
+    <h1>Эталон + один фрейм, четыре слоя</h1>
+    <div class="compare">
+      <div class="panel ref">
+        <p>Эталон (как есть)</p>
+        <div class="ref-stage">
+          <div class="ref-card">
+            <img id="refRaster" class="ref-raster" alt="" width="560" height="320" />
+          </div>
+          <label class="ref-upload">
+            Другой файл:
+            <input type="file" id="refFile" accept="image/*" />
+          </label>
+          <div id="refPlaceholder" class="ref-placeholder" hidden>
+            Положи в <code>public/</code> один из файлов:
+            <code>logo-poroda-frame-1.png</code>, <code>logo-draw-etalon.png</code> или выбери файл выше.
+          </div>
+        </div>
+      </div>
+      <div class="panel anim">
+        <p class="title">Один кадр, четыре слоя PNG</p>
+        <p class="anim-note">
+          Стек: <code>1…4.png</code>. Шторки с наложением по времени: слева направо → справа налево → снизу вверх → сверху вниз (следующий слой на середине предыдущего).
+        </p>
+        <div class="wipe-frame">
+          <div class="wipe-stage">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <mask id="wipeMask1" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                  <rect width="100" height="100" fill="black" />
+                  <rect id="wipeRect1" x="0" y="0" width="0" height="100" fill="white" />
+                </mask>
+                <mask id="wipeMask2" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                  <rect width="100" height="100" fill="black" />
+                  <rect id="wipeRect2" x="100" y="0" width="0" height="100" fill="white" />
+                </mask>
+                <mask id="wipeMask3" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                  <rect width="100" height="100" fill="black" />
+                  <rect id="wipeRect3" x="0" y="100" width="100" height="0" fill="white" />
+                </mask>
+                <mask id="wipeMask4" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                  <rect width="100" height="100" fill="black" />
+                  <rect id="wipeRect4" x="0" y="0" width="100" height="0" fill="white" />
+                </mask>
+              </defs>
+              <rect width="100" height="100" fill="#ffffff" />
+              <image
+                id="wipeImg1"
+                width="100"
+                height="100"
+                preserveAspectRatio="xMidYMid meet"
+                mask="url(#wipeMask1)"
+              />
+              <image
+                id="wipeImg2"
+                width="100"
+                height="100"
+                preserveAspectRatio="xMidYMid meet"
+                mask="url(#wipeMask2)"
+              />
+              <image
+                id="wipeImg3"
+                width="100"
+                height="100"
+                preserveAspectRatio="xMidYMid meet"
+                mask="url(#wipeMask3)"
+              />
+              <image
+                id="wipeImg4"
+                width="100"
+                height="100"
+                preserveAspectRatio="xMidYMid meet"
+                mask="url(#wipeMask4)"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <button type="button" id="replay">Перезапустить</button>
+      <label>
+        Длительность слоя, с
+        <input type="range" id="durSec" min="1.5" max="6" step="0.25" value="3.2" />
+        <span id="durVal">3.2</span>
+      </label>
+    </div>
+    <div class="controls" style="max-width: 42rem; margin: 0 auto">
+      <button type="button" id="exportGif">Скачать GIF (полная анимация)</button>
+      <label>
+        Длительность слоя в GIF, с
+        <input type="range" id="gifLayerDurSec" min="1.5" max="6" step="0.25" value="3.2" />
+        <span id="gifLayerDurVal">3.2</span>
+      </label>
+      <label>
+        Кадров/с в GIF
+        <input type="range" id="gifFps" min="8" max="60" step="1" value="30" />
+        <span id="gifFpsVal">30</span>
+      </label>
+    </div>
+    <p id="gifStatus" class="hint" style="min-height: 1.2em"></p>
+    <p class="hint">
+      <code>1.png</code> → <code>public/logo-poroda-frame-1.png</code>, <code>2.png</code> → <code>logo-poroda-frame-2.png</code>,
+      <code>3.png</code> → <code>logo-poroda-frame-3.png</code>,       <code>4.png</code> → <code>logo-poroda-frame-4.png</code>. <strong>Превью</strong> — «Длительность слоя»; <strong>экспорт GIF</strong> — отдельно «Длительность слоя в GIF» и «Кадров/с». GIF в браузере (gifenc с CDN).
+    </p>
+    <script>
+      (function () {
+        const img = document.getElementById("refRaster");
+        const ph = document.getElementById("refPlaceholder");
+        const refFile = document.getElementById("refFile");
+        const wipeImg1 = document.getElementById("wipeImg1");
+        const wipeRect1 = document.getElementById("wipeRect1");
+        const wipeImg2 = document.getElementById("wipeImg2");
+        const wipeRect2 = document.getElementById("wipeRect2");
+        const wipeImg3 = document.getElementById("wipeImg3");
+        const wipeRect3 = document.getElementById("wipeRect3");
+        const wipeImg4 = document.getElementById("wipeImg4");
+        const wipeRect4 = document.getElementById("wipeRect4");
+        let objectUrl = null;
+        let hasFrame2 = false;
+        let hasFrame3 = false;
+        let hasFrame4 = false;
+
+        const relativeNames = [
+          "logo-poroda-frame-1.png",
+          "logo-draw-etalon.png",
+          "logo-draw-marked-sequence.png",
+          "logo-draw-reference.png",
+          "images/brand/logo.png",
+        ];
+
+        function buildUrls() {
+          const out = [];
+          const seen = new Set();
+          for (const name of relativeNames) {
+            try {
+              const href = new URL(name, window.location.href).href;
+              if (!seen.has(href)) {
+                seen.add(href);
+                out.push(href);
+              }
+            } catch {
+              const fallback = name.startsWith("/") ? name : "/" + name;
+              if (!seen.has(fallback)) {
+                seen.add(fallback);
+                out.push(fallback);
+              }
+            }
+          }
+          return out;
+        }
+
+        const urls = buildUrls();
+
+        function setHref(el, url) {
+          if (!url || !el) return;
+          el.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
+          el.setAttribute("href", url);
+        }
+
+        function setImageSrc(url) {
+          if (!url) return;
+          img.src = url;
+          setHref(wipeImg1, url);
+        }
+
+        function showRaster() {
+          img.classList.add("is-visible");
+          ph.hidden = true;
+        }
+
+        function showPlaceholder() {
+          img.classList.remove("is-visible");
+          img.removeAttribute("src");
+          wipeImg1.removeAttribute("href");
+          wipeImg1.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+          wipeImg2.removeAttribute("href");
+          wipeImg2.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+          wipeImg3.removeAttribute("href");
+          wipeImg3.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+          wipeImg4.removeAttribute("href");
+          wipeImg4.removeAttributeNS("http://www.w3.org/1999/xlink", "href");
+          hasFrame2 = false;
+          hasFrame3 = false;
+          hasFrame4 = false;
+          ph.hidden = false;
+        }
+
+        function revokeObjectUrl() {
+          if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+          }
+        }
+
+        function easeInOutCubic(t) {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        function getDurationMs() {
+          return Number(document.getElementById("durSec").value) * 1000;
+        }
+
+        function getGifLayerDurationMs() {
+          return Number(document.getElementById("gifLayerDurSec").value) * 1000;
+        }
+
+        /** Следующий слой стартует через эту долю длительности слоя после старта предыдущего (0.5 = на середине анимации предыдущего). */
+        const LAYER_STAGGER_FRAC = 0.5;
+
+        let animToken = 0;
+
+        function scheduleLayer(runId, delayMs, playFn) {
+          return new Promise(function (resolve) {
+            setTimeout(function () {
+              if (runId !== animToken) {
+                resolve();
+                return;
+              }
+              playFn().then(resolve);
+            }, Math.max(0, delayMs));
+          });
+        }
+
+        function playLeftToRight(rect, runId, ms) {
+          return new Promise(function (resolve) {
+            ms = ms != null ? ms : getDurationMs();
+            rect.setAttribute("x", "0");
+            rect.setAttribute("width", "0");
+            const t0 = performance.now();
+            function frame(now) {
+              if (runId !== animToken) {
+                resolve();
+                return;
+              }
+              const u = Math.min(1, (now - t0) / ms);
+              const w = 100 * easeInOutCubic(u);
+              rect.setAttribute("width", w.toFixed(4));
+              if (u < 1) requestAnimationFrame(frame);
+              else resolve();
+            }
+            requestAnimationFrame(frame);
+          });
+        }
+
+        function playRightToLeft(rect, runId, ms) {
+          return new Promise(function (resolve) {
+            ms = ms != null ? ms : getDurationMs();
+            rect.setAttribute("x", "100");
+            rect.setAttribute("width", "0");
+            const t0 = performance.now();
+            function frame(now) {
+              if (runId !== animToken) {
+                resolve();
+                return;
+              }
+              const u = Math.min(1, (now - t0) / ms);
+              const w = 100 * easeInOutCubic(u);
+              rect.setAttribute("width", w.toFixed(4));
+              rect.setAttribute("x", (100 - w).toFixed(4));
+              if (u < 1) requestAnimationFrame(frame);
+              else resolve();
+            }
+            requestAnimationFrame(frame);
+          });
+        }
+
+        function playBottomToTop(rect, runId, ms) {
+          return new Promise(function (resolve) {
+            ms = ms != null ? ms : getDurationMs();
+            rect.setAttribute("x", "0");
+            rect.setAttribute("width", "100");
+            rect.setAttribute("y", "100");
+            rect.setAttribute("height", "0");
+            const t0 = performance.now();
+            function frame(now) {
+              if (runId !== animToken) {
+                resolve();
+                return;
+              }
+              const u = Math.min(1, (now - t0) / ms);
+              const h = 100 * easeInOutCubic(u);
+              rect.setAttribute("height", h.toFixed(4));
+              rect.setAttribute("y", (100 - h).toFixed(4));
+              if (u < 1) requestAnimationFrame(frame);
+              else resolve();
+            }
+            requestAnimationFrame(frame);
+          });
+        }
+
+        function playTopToBottom(rect, runId, ms) {
+          return new Promise(function (resolve) {
+            ms = ms != null ? ms : getDurationMs();
+            rect.setAttribute("x", "0");
+            rect.setAttribute("y", "0");
+            rect.setAttribute("width", "100");
+            rect.setAttribute("height", "0");
+            const t0 = performance.now();
+            function frame(now) {
+              if (runId !== animToken) {
+                resolve();
+                return;
+              }
+              const u = Math.min(1, (now - t0) / ms);
+              const h = 100 * easeInOutCubic(u);
+              rect.setAttribute("height", h.toFixed(4));
+              if (u < 1) requestAnimationFrame(frame);
+              else resolve();
+            }
+            requestAnimationFrame(frame);
+          });
+        }
+
+        function resetWipeRects() {
+          wipeRect1.setAttribute("x", "0");
+          wipeRect1.setAttribute("width", "0");
+          wipeRect2.setAttribute("x", "100");
+          wipeRect2.setAttribute("width", "0");
+          wipeRect3.setAttribute("x", "0");
+          wipeRect3.setAttribute("y", "100");
+          wipeRect3.setAttribute("width", "100");
+          wipeRect3.setAttribute("height", "0");
+          wipeRect4.setAttribute("x", "0");
+          wipeRect4.setAttribute("y", "0");
+          wipeRect4.setAttribute("width", "100");
+          wipeRect4.setAttribute("height", "0");
+        }
+
+        async function playSequence() {
+          const runId = ++animToken;
+          resetWipeRects();
+          const ms = getDurationMs();
+          const staggerMs = ms * LAYER_STAGGER_FRAC;
+          const items = [{ rect: wipeRect1, play: playLeftToRight }];
+          if (hasFrame2) items.push({ rect: wipeRect2, play: playRightToLeft });
+          if (hasFrame3) items.push({ rect: wipeRect3, play: playBottomToTop });
+          if (hasFrame4) items.push({ rect: wipeRect4, play: playTopToBottom });
+          const tasks = items.map(function (it, k) {
+            return scheduleLayer(runId, k * staggerMs, function () {
+              return it.play(it.rect, runId, ms);
+            });
+          });
+          await Promise.all(tasks);
+        }
+
+        function playReplay() {
+          playSequence();
+        }
+
+        function svgImageHref(el) {
+          if (!el) return null;
+          return el.getAttribute("href") || el.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+        }
+
+        function loadImage(url) {
+          return new Promise(function (resolve, reject) {
+            const im = new Image();
+            im.onload = function () {
+              resolve(im);
+            };
+            im.onerror = reject;
+            im.src = url;
+          });
+        }
+
+        function drawImageContain(ctx, im, cw, ch) {
+          const iw = im.naturalWidth;
+          const ih = im.naturalHeight;
+          if (!iw || !ih) return;
+          const ir = iw / ih;
+          const cr = cw / ch;
+          let dw;
+          let dh;
+          let dx;
+          let dy;
+          if (ir > cr) {
+            dw = cw;
+            dh = cw / ir;
+            dx = 0;
+            dy = (ch - dh) / 2;
+          } else {
+            dh = ch;
+            dw = ch * ir;
+            dy = 0;
+            dx = (cw - dw) / 2;
+          }
+          ctx.drawImage(im, dx, dy, dw, dh);
+        }
+
+        function overlappingTimelineTotalMs(n, durMs, staggerFrac) {
+          if (n <= 1) return durMs;
+          const g = staggerFrac != null ? staggerFrac : LAYER_STAGGER_FRAC;
+          return (n - 1) * durMs * g + durMs;
+        }
+
+        /** Та же логика, что в превью: слой k стартует в k * durMs * staggerFrac. */
+        function renderStackToCanvas(ctx, W, H, tMs, durMs, images, staggerFrac) {
+          const g = staggerFrac != null ? staggerFrac : LAYER_STAGGER_FRAC;
+          const kinds = ["lr", "rl", "bt", "tb"];
+          const n = images.length;
+          const staggerMs = durMs * g;
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, W, H);
+
+          for (let i = 0; i < n; i++) {
+            const start_i = i * staggerMs;
+            const raw = (tMs - start_i) / durMs;
+            if (raw <= 0) continue;
+            const u = easeInOutCubic(Math.min(1, Math.max(0, raw)));
+            const kind = kinds[i];
+            ctx.save();
+            ctx.beginPath();
+            if (kind === "lr") ctx.rect(0, 0, W * u, H);
+            else if (kind === "rl") ctx.rect(W * (1 - u), 0, W * u, H);
+            else if (kind === "bt") ctx.rect(0, H * (1 - u), W, H * u);
+            else ctx.rect(0, 0, W, H * u);
+            ctx.clip();
+            drawImageContain(ctx, images[i], W, H);
+            ctx.restore();
+          }
+        }
+
+        async function exportGif() {
+          const status = document.getElementById("gifStatus");
+          const btn = document.getElementById("exportGif");
+          const u1 = svgImageHref(wipeImg1);
+          if (!u1) {
+            status.textContent = "Нет картинки для слоя 1.";
+            return;
+          }
+          btn.disabled = true;
+          status.textContent = "Загрузка слоёв и кодирование GIF…";
+
+          try {
+            const { GIFEncoder, quantize, applyPalette } = await import(
+              "https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js"
+            );
+
+            const urls = [u1];
+            if (hasFrame2 && svgImageHref(wipeImg2)) urls.push(svgImageHref(wipeImg2));
+            if (hasFrame3 && svgImageHref(wipeImg3)) urls.push(svgImageHref(wipeImg3));
+            if (hasFrame4 && svgImageHref(wipeImg4)) urls.push(svgImageHref(wipeImg4));
+
+            const images = [];
+            for (let i = 0; i < urls.length; i++) {
+              images.push(await loadImage(urls[i]));
+            }
+
+            const durMs = getGifLayerDurationMs();
+            const fps = Number(document.getElementById("gifFps").value);
+            /* GIF: задержка в мс (gifenc переводит в сотые доли сек); мин. 10 мс ≈ до 100 к/с, на практике разумный потолок — ползунок. */
+            const frameDelay = Math.max(10, Math.round(1000 / fps));
+            const n = images.length;
+            const totalMs = overlappingTimelineTotalMs(n, durMs, LAYER_STAGGER_FRAC);
+            const W = 320;
+            const H = 320;
+            const canvas = document.createElement("canvas");
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext("2d");
+
+            /* Палитру нельзя брать с t=0: слои ещё не рисуются (белый кадр) — тогда весь GIF станет белым. */
+            renderStackToCanvas(ctx, W, H, totalMs, durMs, images, LAYER_STAGGER_FRAC);
+            const globalPalette = quantize(ctx.getImageData(0, 0, W, H).data, 256);
+
+            const gif = GIFEncoder();
+            let frameIndex = 0;
+            for (let t = 0; t <= totalMs + 0.5; t += frameDelay) {
+              const tClamped = Math.min(t, totalMs);
+              renderStackToCanvas(ctx, W, H, tClamped, durMs, images, LAYER_STAGGER_FRAC);
+              const id = ctx.getImageData(0, 0, W, H);
+              const index = applyPalette(id.data, globalPalette);
+              const opts = { palette: globalPalette, delay: frameDelay };
+              if (frameIndex === 0) {
+                opts.repeat = 0;
+              }
+              gif.writeFrame(index, W, H, opts);
+              frameIndex++;
+            }
+
+            gif.finish();
+            const bytes = gif.bytes();
+            const blob = new Blob([bytes], { type: "image/gif" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "poroda-layers-animation.gif";
+            a.click();
+            URL.revokeObjectURL(a.href);
+            status.textContent = "Готово: " + frameIndex + " кадров.";
+          } catch (e) {
+            console.error(e);
+            status.textContent = "Ошибка: " + (e && e.message ? e.message : String(e));
+          } finally {
+            btn.disabled = false;
+          }
+        }
+
+        let refIndex = 0;
+
+        function tryLoadFrame4() {
+          const u4 = new URL("logo-poroda-frame-4.png", window.location.href).href;
+          const p4 = new Image();
+          p4.onload = function () {
+            hasFrame4 = true;
+            setHref(wipeImg4, u4);
+            playSequence();
+          };
+          p4.onerror = function () {
+            hasFrame4 = false;
+            playSequence();
+          };
+          p4.src = u4;
+        }
+
+        function tryLoadFrame3() {
+          const u3 = new URL("logo-poroda-frame-3.png", window.location.href).href;
+          const p3 = new Image();
+          p3.onload = function () {
+            hasFrame3 = true;
+            setHref(wipeImg3, u3);
+            tryLoadFrame4();
+          };
+          p3.onerror = function () {
+            hasFrame3 = false;
+            tryLoadFrame4();
+          };
+          p3.src = u3;
+        }
+
+        function tryLoadFrame2() {
+          const u2 = new URL("logo-poroda-frame-2.png", window.location.href).href;
+          const p2 = new Image();
+          p2.onload = function () {
+            hasFrame2 = true;
+            setHref(wipeImg2, u2);
+            tryLoadFrame3();
+          };
+          p2.onerror = function () {
+            hasFrame2 = false;
+            tryLoadFrame3();
+          };
+          p2.src = u2;
+        }
+
+        function tryNextRef() {
+          if (refIndex >= urls.length) {
+            showPlaceholder();
+            tryLoadFrame2();
+            return;
+          }
+          const url = urls[refIndex++];
+          const probe = new Image();
+          probe.onload = function () {
+            revokeObjectUrl();
+            setImageSrc(url);
+            showRaster();
+            tryLoadFrame2();
+          };
+          probe.onerror = tryNextRef;
+          probe.src = url;
+        }
+
+        refFile.addEventListener("change", function () {
+          const f = refFile.files && refFile.files[0];
+          if (!f) return;
+          revokeObjectUrl();
+          objectUrl = URL.createObjectURL(f);
+          setImageSrc(objectUrl);
+          showRaster();
+          tryLoadFrame2();
+        });
+
+        document.getElementById("replay").addEventListener("click", playReplay);
+        document.getElementById("durSec").addEventListener("input", function () {
+          document.getElementById("durVal").textContent = document.getElementById("durSec").value;
+        });
+        document.getElementById("durVal").textContent = document.getElementById("durSec").value;
+
+        document.getElementById("exportGif").addEventListener("click", exportGif);
+        document.getElementById("gifFps").addEventListener("input", function () {
+          document.getElementById("gifFpsVal").textContent = document.getElementById("gifFps").value;
+        });
+        document.getElementById("gifFpsVal").textContent = document.getElementById("gifFps").value;
+
+        document.getElementById("gifLayerDurSec").addEventListener("input", function () {
+          document.getElementById("gifLayerDurVal").textContent = document.getElementById("gifLayerDurSec").value;
+        });
+        document.getElementById("gifLayerDurVal").textContent = document.getElementById("gifLayerDurSec").value;
+
+        tryNextRef();
+      })();
+    </script>
+  </body>
+</html>

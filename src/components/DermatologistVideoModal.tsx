@@ -45,7 +45,9 @@ export default function DermatologistVideoModal({
   const [phase, setPhase] = useState<"video" | "feedback">("video");
 
   useEffect(() => {
-    if (open) setPhase("video");
+    queueMicrotask(() => {
+      if (open) setPhase("video");
+    });
   }, [open, videoUrl]);
 
   if (!open) return null;

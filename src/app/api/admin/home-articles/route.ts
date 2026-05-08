@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
 import { getHomeArticlesForAdmin } from "@/lib/home-articles";
 import { prisma } from "@/lib/db";
+import { nullIfEmptyRich, sanitizeText } from "@/lib/sanitize";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -11,6 +13,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
@@ -25,9 +29,9 @@ export async function POST(request: NextRequest) {
   try {
     const row = await prisma.homeArticle.create({
       data: {
-        title: title.trim(),
+        title: sanitizeText(String(title), 500).trim(),
         linkUrl: (linkUrl ?? "").trim(),
-        description: (description ?? "").trim(),
+        description: nullIfEmptyRich(description) ?? "",
         sortOrder: sortOrder ?? 0,
         active: active ?? true,
       },

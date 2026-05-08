@@ -1,6 +1,7 @@
 import AboutSubnav from "@/components/AboutSubnav";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
+import Link from "next/link";
 
 export default function ContactsPage() {
   return (
@@ -10,9 +11,9 @@ export default function ContactsPage() {
 
         <p className="mt-8 text-sm leading-relaxed text-zinc-700 sm:mt-10">
           Свяжитесь с нами по почте или телефону. По вопросам сотрудничества и дистрибуции — страница{" "}
-          <a href="/partners" className="font-medium text-zinc-900 underline underline-offset-2 hover:no-underline">
+          <Link href="/partners" className="font-medium text-zinc-900 underline underline-offset-2 hover:no-underline">
             Партнёрам
-          </a>
+          </Link>
           .
         </p>
 

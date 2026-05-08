@@ -1,13 +1,23 @@
 import { parseMarketplaceUrl } from "@/lib/marketplace-links";
 
+export const DERMATOLOGIST_VIDEO_INVALID_MESSAGE =
+  "Неверная ссылка на видео. Допустимы: YouTube, Vimeo, прямой mp4/webm/ogg.";
+
 export type VideoPresentation =
   | { type: "youtube"; embedUrl: string }
   | { type: "vimeo"; embedUrl: string }
   | { type: "direct"; src: string }
   | { type: "unsupported"; pageUrl: string };
 
+/**
+ * Нормализованный https-URL для поля товара или null.
+ * null — пусто, невалидный URL или не YouTube / Vimeo / прямой mp4|webm|ogg.
+ */
 export function parseDermatologistVideoUrl(raw: unknown): string | null {
-  return parseMarketplaceUrl(raw);
+  const href = parseMarketplaceUrl(raw);
+  if (!href) return null;
+  if (getVideoPresentation(href).type === "unsupported") return null;
+  return href;
 }
 
 function youtubeIdFromUrl(u: URL): string | null {

@@ -1,4 +1,4 @@
--- Вставь в Supabase: SQL Editor → New query → вставь весь код ниже → Run.
+-- Выполни в SQL-клиенте к PostgreSQL: вставь весь код ниже одной сессией.
 -- Пароль админа: admin123
 
 INSERT INTO "Admin" (id, email, "passwordHash", name, "createdAt", "updatedAt")

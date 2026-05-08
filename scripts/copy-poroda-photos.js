@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CJS-скрипт, без ESM */
 /**
  * Копирует фото из папки "фото PORODA" (подпапки 1, 2, 3, … и общие) в public/images/poroda/
  * Запуск из корня poroda-site: node scripts/copy-poroda-photos.js

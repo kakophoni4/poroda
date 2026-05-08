@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import Container from "./Container";
 import Logo from "./Logo";
+import LogoutButton from "./LogoutButton";
 import Link from "next/link";
 import { useSiteCopy } from "@/context/SiteCopyContext";
 
@@ -123,6 +124,7 @@ export default function Header() {
                   <span className="lg:hidden">ЛК</span>
                   <span className="hidden lg:inline">{t("header.account")}</span>
                 </Link>
+                <LogoutButton className="shrink-0 border-0 bg-transparent px-1 py-1.5 text-sm font-semibold text-zinc-900 transition hover:opacity-80 sm:px-2" />
                 <a
                   href="https://t.me/porodacosmetics"
                   target="_blank"

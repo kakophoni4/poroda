@@ -18,7 +18,7 @@
 
 | Переменная       | Описание |
 |------------------|----------|
-| `DATABASE_URL`   | Строка подключения к PostgreSQL (Supabase или Railway Postgres). |
+| `DATABASE_URL`   | Строка подключения к PostgreSQL (сервис Postgres в Railway или внешний URL). |
 | `SESSION_SECRET` | Секрет для сессий (придумайте длинную случайную строку). |
 
 **Онлайн-оплата (эквайринг Альфа-Банк, см. `src/app/api/payment/create/route.ts`):**
@@ -30,13 +30,7 @@
 | `ALFABANK_CLIENT_ID` | При необходимости по документации провайдера. |
 | `ALFABANK_API_URL` | Опционально; по умолчанию тестовый шлюз `https://api.uat.all2pay.net/v1`, для боя — URL из договора. |
 
-**Пример для Supabase** (из панели Supabase → Project Settings → Database):
-
-```env
-DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
-```
-
-Для миграций с `prisma db push` или сидов иногда нужен прямой URL без pooler (порт 5432). В Railway можно задать вторую переменную, например `DIRECT_URL`, если будете использовать её в `schema.prisma`.
+**Формат `DATABASE_URL`:** `postgresql://USER:PASSWORD@HOST:PORT/DB?schema=public` (и при необходимости `sslmode=require` для облачных БД). Для миграций/сидов в CI и на проде используется `npx prisma migrate deploy` — в `schema.prisma` при PgBouncer в проде при необходимости можно добавить `directUrl` (документация Prisma).
 
 ## 4. Сборка и запуск
 
@@ -57,24 +51,23 @@ node .next/standalone/server.js
 
 ## 5. База данных
 
-- Либо создайте **PostgreSQL** в Railway (Add Service → Database → PostgreSQL) и скопируйте `DATABASE_URL` из переменных сервиса в переменные вашего веб-сервиса.
-- Либо используйте уже созданную БД в **Supabase** и вставьте её URL в `DATABASE_URL`.
+- Создайте **PostgreSQL** в Railway (Add Service → Database → PostgreSQL) и скопируйте `DATABASE_URL` из переменных сервиса в переменные вашего веб-сервиса, либо укажите внешний кластер PostgreSQL.
 
-После первого деплоя при необходимости выполните миграции и сиды с локальной машины, подставив продовый `DATABASE_URL`:
+После первого деплоя при необходимости примените миграции и сид с локальной машины, подставив продовый `DATABASE_URL`:
 
 ```bash
 cd poroda-site
-DATABASE_URL="ваш_продовый_url" npx prisma db push
+DATABASE_URL="ваш_продовый_url" npx prisma migrate deploy
 DATABASE_URL="ваш_продовый_url" npx prisma db seed
 ```
 
 ## 6. Домен и HTTPS
 
-В Railway: **Settings** → **Networking** → **Generate Domain**. Дам выдаётся автоматически, HTTPS включён.
+В Railway: **Settings** → **Networking** → **Generate Domain**. Вам выдаётся URL автоматически, HTTPS включён.
 
 ## Краткий чеклист
 
 - [ ] Репозиторий на GitHub, Root Directory = `poroda-site` (если нужно).
 - [ ] В Railway заданы `DATABASE_URL` и `SESSION_SECRET`.
 - [ ] Build: `npm run build`, Start: `npm run start` (или `node .next/standalone/server.js` при standalone).
-- [ ] После деплоя при необходимости: `prisma db push` и `prisma db seed` с продовым `DATABASE_URL`.
+- [ ] После деплоя при необходимости: `npx prisma migrate deploy` и `npx prisma db seed` с продовым `DATABASE_URL`.

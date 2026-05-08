@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 
 async function mintReviewPromoCode(orderId: string): Promise<string> {
@@ -39,6 +40,8 @@ async function mintReviewPromoCode(orderId: string): Promise<string> {
 }
 
 export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await ctx.params;
@@ -67,7 +70,7 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
     return NextResponse.json({ ok: true, rewardCode: review.rewardCode });
   }
 
-  const code = await mintReviewPromoCode(review.order.id);
+  const code = review.rewardCode ?? (await mintReviewPromoCode(review.order.id));
   await prisma.customerReview.update({
     where: { id },
     data: { status: "approved", rewardCode: code },

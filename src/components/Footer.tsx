@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import Container from "./Container";
+import Logo from "./Logo";
 import { useSiteCopy } from "@/context/SiteCopyContext";
 
 const linkClass =
@@ -16,14 +18,16 @@ export default function Footer() {
         <div className="liquidGlass-dock rounded-2xl border border-white/40 px-4 py-6 sm:rounded-3xl sm:px-6 sm:py-7 lg:px-8 lg:py-8">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-5 lg:grid-cols-4 lg:gap-x-10 lg:gap-y-0">
             <div className="sm:col-span-2 lg:col-span-1">
-              <div className={headingClass}>{t("footer.brand")}</div>
+              <Link href="/" className="inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400">
+                <Logo variant="footer" />
+              </Link>
             </div>
 
             <nav className="min-w-0 flex flex-col gap-1.5" aria-label={t("footer.sections_title")}>
               <div className={`${headingClass} mb-0.5`}>{t("footer.sections_title")}</div>
-              <a className={linkClass} href="/catalog">
+              <Link className={linkClass} href="/catalog">
                 {t("footer.link_products")}
-              </a>
+              </Link>
               <a className={linkClass} href="/blog">
                 {t("footer.link_blog")}
               </a>

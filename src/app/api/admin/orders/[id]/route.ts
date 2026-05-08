@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isAllowedOrderStatus, orderStatusLabel } from "@/lib/order-status";
+import { assertSameOrigin } from "@/lib/csrf";
+import { isAllowedOrderStatus, normalizeOrderStatus, orderStatusLabel } from "@/lib/order-status";
+import { createReviewInviteNotification } from "@/lib/review-invite";
 
 export async function GET(
   _request: NextRequest,
@@ -25,6 +27,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
@@ -55,7 +59,10 @@ export async function PATCH(
       ...(name != null && { name }),
       ...(email != null && { email }),
     },
-    include: { items: true },
+    include: {
+      items: { include: { product: { select: { slug: true, title: true } } } },
+      user: { select: { id: true, email: true, name: true } },
+    },
   });
   if (
     existing &&
@@ -71,6 +78,22 @@ export async function PATCH(
         body: `Статус вашего заказа ${order.id.slice(0, 10)}… изменён на «${label}».`,
       },
     });
+  }
+  if (
+    existing &&
+    status === "delivered" &&
+    normalizeOrderStatus(existing.status) !== "delivered" &&
+    (order.userId || (order.email?.trim() ?? "") !== "")
+  ) {
+    await createReviewInviteNotification(
+      {
+        id: order.id,
+        userId: order.userId,
+        email: order.email,
+        reviewToken: order.reviewToken,
+      },
+      { reason: "admin-status-delivered" }
+    );
   }
   return NextResponse.json(order);
 }

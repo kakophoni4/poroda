@@ -33,6 +33,7 @@ function ConcernCardInner({ card }: { card: HomeConcernCardPublic }) {
   return (
     <>
       <div className="relative h-16 w-full shrink-0 overflow-hidden rounded-t-2xl bg-transparent sm:h-20">
+        {/* eslint-disable-next-line @next/next/no-img-element -- URL из БД, карточка фиксированной высоты */}
         <img
           src={card.imageUrl}
           alt=""

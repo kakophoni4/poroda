@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { Product, Category } from "@prisma/client";
 import { parseResearchLinks } from "@/lib/product-detail";
@@ -216,6 +217,7 @@ function ProductForm({
                     setForm((f) => ({ ...f, imageFocusX: Math.max(0, Math.min(100, x)), imageFocusY: Math.max(0, Math.min(100, y)) }));
                   }}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- кроп фокуса, динамический objectPosition */}
                   <img
                     src={form.imageUrls[0]}
                     alt=""
@@ -235,6 +237,7 @@ function ProductForm({
               {form.imageUrls.map((url, i) => (
                 <div key={i} className="flex flex-col items-center gap-1">
                   <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- превью миниатюр в форме */}
                     <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover border border-zinc-200" />
                     <button
                       type="button"
@@ -584,6 +587,10 @@ function ProductForm({
                   className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
                   placeholder="YouTube, Vimeo или прямая ссылка на .mp4 / .webm"
                 />
+                <p className="mt-1 text-[11px] leading-snug text-zinc-500">
+                  Поддерживаются YouTube (https://youtu.be/..., https://www.youtube.com/watch?v=...), Vimeo (https://vimeo.com/...) и
+                  прямые ссылки на mp4/webm/ogg.
+                </p>
               </div>
             </div>
           </div>
@@ -612,9 +619,11 @@ function ProductForm({
 export default function AdminProductsClient({
   initialProducts,
   categories,
+  pagination,
 }: {
   initialProducts: ProductWithCat[];
   categories: Category[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [editing, setEditing] = useState<ProductWithCat | null>(null);
@@ -756,13 +765,52 @@ export default function AdminProductsClient({
     }
   };
 
+  const { page, limit, total, totalPages } = pagination;
+  const qs = (p: number) => {
+    const s = new URLSearchParams();
+    s.set("page", String(p));
+    s.set("limit", String(limit));
+    return `?${s.toString()}`;
+  };
+
   return (
     <div className="mt-6 space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm text-zinc-600">
+            Всего в каталоге: {total}
+            {totalPages > 1 && (
+              <>
+                {" "}
+                · стр. {page} из {totalPages} (по {limit} на стр.)
+              </>
+            )}
+          </p>
+          {totalPages > 1 && (
+            <div className="mt-1 flex flex-wrap gap-2">
+              {page > 1 && (
+                <Link
+                  href={`/admin/products${qs(page - 1)}`}
+                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50"
+                >
+                  Назад
+                </Link>
+              )}
+              {page < totalPages && (
+                <Link
+                  href={`/admin/products${qs(page + 1)}`}
+                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50"
+                >
+                  Вперёд
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={openCreate}
-          className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
         >
           + Добавить позицию
         </button>
@@ -775,6 +823,7 @@ export default function AdminProductsClient({
         >
           <div className="flex items-center gap-4">
             {((p as { imageUrls?: string[] }).imageUrls?.[0] ?? p.imageUrl ?? "") ? (
+              /* eslint-disable-next-line @next/next/no-img-element -- иконка в списке админки */
               <img
                 src={(p as { imageUrls?: string[] }).imageUrls?.[0] ?? p.imageUrl ?? ""}
                 alt=""
@@ -786,10 +835,15 @@ export default function AdminProductsClient({
             <div>
               <span className="font-medium">{p.title}</span>
               <span className="ml-2 text-zinc-500">({p.category.title})</span>
+              {p.archivedAt != null && (
+                <span className="ml-2 inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+                  В архиве
+                </span>
+              )}
               <p className="text-sm text-zinc-600">{p.price} ₽</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => openEdit(p)}
@@ -797,17 +851,48 @@ export default function AdminProductsClient({
             >
               Редактировать
             </button>
+            {p.archivedAt != null ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await fetch(`/api/admin/products/${p.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ archivedAt: null, inStock: true }),
+                  });
+                  if (!res.ok) return;
+                  const updated = (await res.json()) as ProductWithCat;
+                  setProducts((prev) => prev.map((x) => (x.id === updated.id ? { ...updated, category: p.category } : x)));
+                }}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-800 hover:bg-emerald-100"
+              >
+                Восстановить
+              </button>
+            ) : (
             <button
               type="button"
               onClick={async () => {
-                if (!confirm("Удалить позицию из каталога?")) return;
+                if (
+                  !confirm(
+                    "Снять позицию с витрины (архив)? Позиция останется в базе, история заказов не пострадает. В каталоге товар пропадёт."
+                  )
+                ) {
+                  return;
+                }
                 const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
-                if (res.ok) setProducts((prev) => prev.filter((x) => x.id !== p.id));
+                if (!res.ok) return;
+                const data = (await res.json()) as { product?: ProductWithCat };
+                if (data.product) {
+                  setProducts((prev) =>
+                    prev.map((x) => (x.id === data.product!.id ? (data.product as ProductWithCat) : x))
+                  );
+                }
               }}
               className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
             >
               Удалить
             </button>
+            )}
           </div>
         </div>
       ))}

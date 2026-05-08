@@ -12,6 +12,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const categoryToFolder: Record<string, number> = { cleansing: 1, toners: 2, serums: 3, creams: 4, masks: 5, sets: 6 };
   try {
     const p = await prisma.product.findUnique({ where: { slug }, include: { category: true } });
+    if (p && p.archivedAt != null) {
+      notFound();
+    }
     if (p) {
       const fallback = `/images/poroda/${categoryToFolder[p.category.slug] ?? 1}/1.jpg`;
       const imageUrls = (p as { imageUrls?: string[] }).imageUrls?.length

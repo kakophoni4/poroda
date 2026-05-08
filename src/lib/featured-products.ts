@@ -24,6 +24,8 @@ export type FeaturedProduct = {
   price: number;
   priceFormatted: string;
   imageUrl: string;
+  /** false — с сайта, не в корзину */
+  inStock: boolean;
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -38,7 +40,7 @@ function shuffle<T>(arr: T[]): T[] {
 export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
   try {
     const featured = await prisma.product.findMany({
-      where: { featuredSortOrder: { not: null } },
+      where: { archivedAt: null, featuredSortOrder: { not: null } },
       orderBy: { featuredSortOrder: "asc" },
       include: { category: { select: { slug: true } } },
       take: FEATURED_COUNT,
@@ -53,9 +55,11 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
         price: p.price,
         priceFormatted: formatFeaturedRub(p.price),
         imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
+        inStock: p.inStock !== false,
       }));
     }
     const all = await prisma.product.findMany({
+      where: { archivedAt: null },
       include: { category: { select: { slug: true } } },
     });
     if (all.length === 0) throw new Error("no products");
@@ -69,6 +73,7 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
       price: p.price,
       priceFormatted: formatFeaturedRub(p.price),
       imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
+      inStock: p.inStock !== false,
     }));
   } catch {
     const list = shuffle(staticProducts).slice(0, FEATURED_COUNT);
@@ -80,6 +85,7 @@ export async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
       price: p.price,
       priceFormatted: formatFeaturedRub(p.price),
       imageUrl: p.imageUrl ?? `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`,
+      inStock: p.inStock !== false,
     }));
   }
 }
@@ -96,6 +102,7 @@ function mapDbProduct(
     price: p.price,
     priceFormatted: formatFeaturedRub(p.price),
     imageUrl: p.imageUrl ?? defaultImg(p.category.slug),
+    inStock: (p as { inStock?: boolean }).inStock !== false,
   };
 }
 
@@ -103,6 +110,7 @@ function mapDbProduct(
 export async function getAllProductsForHome(): Promise<FeaturedProduct[]> {
   try {
     const all = await prisma.product.findMany({
+      where: { archivedAt: null },
       include: { category: { select: { slug: true, sortOrder: true } } },
       orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }, { title: "asc" }],
     });
@@ -117,6 +125,7 @@ export async function getAllProductsForHome(): Promise<FeaturedProduct[]> {
       price: p.price,
       priceFormatted: formatFeaturedRub(p.price),
       imageUrl: p.imageUrl ?? `/images/poroda/${categoryToFolder[p.categorySlug] ?? 1}/1.jpg`,
+      inStock: p.inStock !== false,
     }));
   }
 }

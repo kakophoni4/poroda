@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getAdminSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
+import { sanitizeRichHtml } from "@/lib/sanitize";
 import { SITE_COPY_DEFAULTS_MAP, SITE_COPY_SCHEMA } from "@/lib/site-copy-schema";
 
 export async function PATCH(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
@@ -18,13 +22,14 @@ export async function PATCH(request: NextRequest) {
     const raw = entries[item.key];
     const v = raw == null ? "" : String(raw).trim();
     const def = SITE_COPY_DEFAULTS_MAP[item.key] ?? "";
-    if (!v || v === def) {
+    const safe = v ? sanitizeRichHtml(v) : "";
+    if (!safe || safe === def) {
       await prisma.siteCopy.deleteMany({ where: { key: item.key } }).catch(() => {});
     } else {
       await prisma.siteCopy.upsert({
         where: { key: item.key },
-        create: { key: item.key, value: v },
-        update: { value: v },
+        create: { key: item.key, value: safe },
+        update: { value: safe },
       });
     }
   }

@@ -1,9 +1,12 @@
 import AdminProductsClient from "./AdminProductsClient";
+import { parseAdminListPaginationFromRoute, totalPages } from "@/lib/admin-list-pagination";
 import { prisma } from "@/lib/db";
+import type { Category, Product } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const MIGRATION_SQL = `-- Выполни в Supabase: SQL Editor → New query → вставь код ниже → Run.
+const MIGRATION_SQL = `-- Выполни в клиенте к PostgreSQL (psql, GUI) или одной сессии SQL:
+-- вставь код ниже и выполни.
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "imageUrls" TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "composition" TEXT;
@@ -28,47 +31,74 @@ BEGIN
   END IF;
 END $$;`;
 
-export default async function AdminProductsPage() {
+type ProductWithCategory = Product & { category: Category };
+
+async function loadAdminProductsCatalog(page: number, limit: number, skip: number): Promise<
+  | { needMigration: true }
+  | { needMigration: false; total: number; products: ProductWithCategory[]; categories: Category[] }
+> {
   try {
-    const [products, categories] = await Promise.all([
-      prisma.product.findMany({ orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }], include: { category: true } }),
+    const [total, products, categories] = await Promise.all([
+      prisma.product.count(),
+      prisma.product.findMany({
+        skip,
+        take: limit,
+        orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }],
+        include: { category: true },
+      }),
       prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
     ]);
+    return { needMigration: false, total, products, categories };
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err?.code === "P2022") return { needMigration: true };
+    throw e;
+  }
+}
+
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; limit?: string }>;
+}) {
+  const q = await searchParams;
+  const { page, limit, skip } = parseAdminListPaginationFromRoute(q);
+  const data = await loadAdminProductsCatalog(page, limit, skip);
+  if (data.needMigration) {
     return (
       <>
         <h1 className="text-2xl font-semibold">Продукция</h1>
-        <p className="mt-1 text-sm text-zinc-600">Управление каталогом: добавление, редактирование, удаление.</p>
-        {products.length === 0 && (
-          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            В базе пока нет позиций каталога. Заполнить каталог: в папке <code className="rounded bg-amber-100 px-1">poroda-site</code> выполни{" "}
-            <code className="rounded bg-amber-100 px-1">npx tsx prisma/seed.ts</code> (или <code className="rounded bg-amber-100 px-1">npm run db:seed</code>).
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6">
+          <p className="font-medium text-amber-900">В базе данных нет новых колонок</p>
+          <p className="mt-2 text-sm text-amber-800">
+            Сначала попробуй: <code className="rounded bg-amber-100 px-1">npx prisma migrate deploy</code> (те же миграции, что в репозитории). Если нужен ручной
+            SQL — ниже, затем обнови эту страницу.
           </p>
-        )}
-        <AdminProductsClient initialProducts={products} categories={categories} />
+          <pre className="mt-4 max-h-80 overflow-auto rounded-lg border border-amber-200 bg-white p-4 text-xs text-zinc-700">
+            {MIGRATION_SQL}
+          </pre>
+        </div>
       </>
     );
-  } catch (e: unknown) {
-    const err = e as { code?: string };
-    if (err?.code === "P2022") {
-      return (
-        <>
-          <h1 className="text-2xl font-semibold">Продукция</h1>
-          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6">
-            <p className="font-medium text-amber-900">В базе данных нет новых колонок</p>
-            <p className="mt-2 text-sm text-amber-800">
-              Добавь их в Supabase: открой проект → <strong>SQL Editor</strong> → New query → вставь код ниже → <strong>Run</strong>.
-              Затем обнови эту страницу.
-            </p>
-            <pre className="mt-4 max-h-80 overflow-auto rounded-lg border border-amber-200 bg-white p-4 text-xs text-zinc-700">
-              {MIGRATION_SQL}
-            </pre>
-            <p className="mt-4 text-sm text-amber-800">
-              Либо в терминале из папки проекта: <code className="rounded bg-amber-100 px-1">npx prisma db push</code>
-            </p>
-          </div>
-        </>
-      );
-    }
-    throw e;
   }
+  const { total, products, categories } = data;
+  const pagination = { page, limit, total, totalPages: totalPages(total, limit) };
+  return (
+    <>
+      <h1 className="text-2xl font-semibold">Продукция</h1>
+      <p className="mt-1 text-sm text-zinc-600">Управление каталогом: добавление, редактирование, удаление.</p>
+      {total === 0 && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          В базе пока нет позиций каталога. Заполнить каталог: в папке <code className="rounded bg-amber-100 px-1">poroda-site</code> выполни{" "}
+          <code className="rounded bg-amber-100 px-1">npx tsx prisma/seed.ts</code> (или <code className="rounded bg-amber-100 px-1">npm run db:seed</code>).
+        </p>
+      )}
+      <AdminProductsClient
+        key={`${page}-${total}`}
+        initialProducts={products}
+        categories={categories}
+        pagination={pagination}
+      />
+    </>
+  );
 }

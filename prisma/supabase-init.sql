@@ -1,5 +1,5 @@
--- Выполни этот скрипт в Supabase: Project → SQL Editor → New query → вставь код → Run.
--- После этого в той же БД выполни: npx tsx prisma/seed.ts (из папки poroda-site, в .env должен быть DATABASE_URL на Supabase).
+-- Миграции: предпочтительно npx prisma migrate deploy из папки poroda-site.
+-- Легаси-скрипт: выполни в клиенте SQL к PostgreSQL (одна сессия), при необходимости затем npx tsx prisma/seed.ts с рабочим DATABASE_URL.
 
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
@@ -152,6 +152,7 @@ CREATE TABLE "PageView" (
     "id" TEXT NOT NULL,
     "productId" TEXT,
     "path" TEXT NOT NULL,
+    "referrer" TEXT,
     "userId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

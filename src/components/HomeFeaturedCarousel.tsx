@@ -27,11 +27,16 @@ function FeaturedCard({
   const t = useSiteCopy();
   const { addProduct } = useCart();
   const [added, setAdded] = useState(false);
+  const inStock = p.inStock;
   const titleCard = catalogDisplayTitle(p.title);
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addProduct({ id: p.id, slug: p.slug, title: p.title, price: p.price }, 1);
+    if (!inStock) return;
+    addProduct(
+      { id: p.id, slug: p.slug, title: p.title, price: p.price, inStock: p.inStock },
+      1
+    );
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2000);
   };
@@ -39,15 +44,18 @@ function FeaturedCard({
   return (
     <div
       className={
-        scrollMode && cardWidthPx != null
+        (scrollMode && cardWidthPx != null
           ? "flex shrink-0 snap-start flex-col self-start overflow-hidden rounded-2xl border border-white/35 bg-transparent"
-          : "flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-2xl border border-white/35 bg-transparent"
+          : "flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-2xl border border-white/35 bg-transparent") +
+        (inStock ? "" : " opacity-60")
       }
       style={scrollMode && cardWidthPx != null ? { width: cardWidthPx, flex: "0 0 auto" } : undefined}
     >
       <Link href={`/catalog/${p.slug}`} className={`group flex min-h-0 flex-col ${scrollMode ? "" : "flex-1"}`}>
         {/* Узкая карточка: квадратное фото — заметно больше доля кадра, чем у 4:3 */}
         <div className="aspect-square w-full shrink-0 overflow-hidden rounded-t-2xl bg-zinc-100/40 sm:aspect-[4/3] sm:bg-transparent">
+          {/* next/image: динамические/разные пути, без смысла в статическом import */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={p.imageUrl}
             alt=""
@@ -85,15 +93,25 @@ function FeaturedCard({
           <span className="shrink-0 whitespace-nowrap text-xs font-semibold tabular-nums leading-none text-zinc-900 sm:text-sm">
             {p.priceFormatted}
           </span>
-          <button
-            type="button"
-            onClick={handleAdd}
-            className={`shrink-0 rounded-xl px-2 py-1.5 text-[11px] font-semibold leading-tight text-white sm:px-3 sm:py-1.5 sm:text-xs ${
-              added ? "bg-emerald-600" : "bg-zinc-900 hover:bg-zinc-800"
-            }`}
-          >
-            {added ? t("home.featured.added") : t("home.featured.add")}
-          </button>
+          {inStock ? (
+            <button
+              type="button"
+              onClick={handleAdd}
+              className={`shrink-0 rounded-xl px-2 py-1.5 text-[11px] font-semibold leading-tight text-white sm:px-3 sm:py-1.5 sm:text-xs ${
+                added ? "bg-emerald-600" : "bg-zinc-900 hover:bg-zinc-800"
+              }`}
+            >
+              {added ? t("home.featured.added") : t("home.featured.add")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="shrink-0 cursor-not-allowed rounded-xl border border-zinc-300/80 bg-zinc-200/80 px-2 py-1.5 text-[10px] font-semibold text-zinc-500 sm:px-3 sm:py-1.5 sm:text-xs"
+            >
+              {t("catalog.out_of_stock")}
+            </button>
+          )}
         </div>
         <Link
           href={`/catalog/${p.slug}`}

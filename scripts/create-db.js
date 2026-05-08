@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CJS-скрипт, без ESM */
 /**
  * Создаёт базу данных poroda (подключается к postgres, затем создаёт poroda).
  * Запуск: node scripts/create-db.js

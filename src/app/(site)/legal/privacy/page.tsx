@@ -1,5 +1,6 @@
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
+import Link from "next/link";
 
 export default function PrivacyPage() {
   return (
@@ -185,7 +186,14 @@ export default function PrivacyPage() {
               <ul className="list-none space-y-2">
                 <li><strong>12.1.</strong> Пользователь может получить любые разъяснения по интересующим вопросам, касающимся обработки его персональных данных, обратившись к Оператору с помощью электронной почты <a href="mailto:hello@porodacosmetics.ru" className="text-zinc-900 underline">hello@porodacosmetics.ru</a>.</li>
                 <li><strong>12.2.</strong> В данном документе будут отражены любые изменения политики обработки персональных данных Оператором. Политика действует бессрочно до замены ее новой версией.</li>
-                <li><strong>12.3.</strong> Актуальная версия Политики в свободном доступе расположена в сети Интернет по адресу <a href="https://porodacosmetics.ru/legal/privacy" className="text-zinc-900 underline">https://porodacosmetics.ru/legal/privacy</a>.</li>
+                <li>
+                  <strong>12.3.</strong> Актуальная версия Политики в свободном доступе расположена в сети Интернет по
+                  адресу{" "}
+                  <Link href="/legal/privacy" className="text-zinc-900 underline">
+                    https://porodacosmetics.ru/legal/privacy
+                  </Link>
+                  .
+                </li>
               </ul>
             </section>
           </article>

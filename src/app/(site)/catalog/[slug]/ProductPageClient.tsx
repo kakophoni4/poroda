@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { getProductImages, type Product } from "@/lib/catalog-data";
+import { parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
+import { sanitizePageViewReferrer } from "@/lib/sanitize-referrer";
 import { useCart } from "@/context/CartContext";
 import { useSiteCopy } from "@/context/SiteCopyContext";
 import DermatologistVideoModal from "@/components/DermatologistVideoModal";
@@ -30,7 +32,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
     () => getProductImages(product, `/images/poroda/${categoryToFolder[product.categorySlug] ?? 1}/1.jpg`),
     [product]
   );
-  const videoUrl = (product.dermatologistVideoUrl || "").trim();
+  const videoUrl = parseDermatologistVideoUrl(product.dermatologistVideoUrl) ?? "";
   const hasVideo = Boolean(videoUrl);
   const photoCount = images.length;
   const videoIndex = photoCount;
@@ -101,6 +103,8 @@ export default function ProductPageClient({ product }: { product: Product }) {
 
   useEffect(() => {
     if (hydrated && line) setQtyRowVisible(true);
+    // намеренно: перезапуск при productId/quantity, без object identity line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, line?.productId, line?.quantity]);
 
   useEffect(() => {
@@ -165,10 +169,16 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const thumbsNeedScroll = totalThumbs > maxThumbsPerRow;
 
   useEffect(() => {
+    const ref = typeof document !== "undefined" ? document.referrer : null;
+    const referrer = sanitizePageViewReferrer(ref);
     fetch("/api/view", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: `/catalog/${product.slug}`, productId: product.id }),
+      body: JSON.stringify({
+        page: `/catalog/${product.slug}`,
+        productId: product.id,
+        ...(referrer != null ? { referrer } : {}),
+      }),
     }).catch(() => {});
   }, [product.id, product.slug]);
 
@@ -246,7 +256,16 @@ export default function ProductPageClient({ product }: { product: Product }) {
     if (line) {
       setQuantity(product.id, Math.min(99, line.quantity + 1));
     } else {
-      addProduct({ id: product.id, slug: product.slug, title: product.title, price: product.price }, 1);
+      addProduct(
+        {
+          id: product.id,
+          slug: product.slug,
+          title: product.title,
+          price: product.price,
+          inStock: inStock,
+        },
+        1
+      );
     }
     setQtyRowVisible(true);
     setJustAdded(true);
@@ -272,7 +291,16 @@ export default function ProductPageClient({ product }: { product: Product }) {
   const handleBuy = () => {
     if (!inStock) return;
     if (!line) {
-      addProduct({ id: product.id, slug: product.slug, title: product.title, price: product.price }, 1);
+      addProduct(
+        {
+          id: product.id,
+          slug: product.slug,
+          title: product.title,
+          price: product.price,
+          inStock: inStock,
+        },
+        1
+      );
     }
     router.push("/checkout");
   };
@@ -547,9 +575,13 @@ export default function ProductPageClient({ product }: { product: Product }) {
               </>
             ) : (
               <div className="flex w-full flex-col gap-1.5">
-                <span className="flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-xl bg-zinc-300 px-2 text-center text-[11px] font-semibold text-zinc-600 sm:min-h-[48px] sm:rounded-2xl sm:text-sm">
-                  Нет в наличии
-                </span>
+                <button
+                  type="button"
+                  disabled
+                  className="flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-xl border border-zinc-300/80 bg-zinc-200/80 px-2 text-center text-[11px] font-semibold text-zinc-500 sm:min-h-[48px] sm:rounded-2xl sm:text-sm"
+                >
+                  {t("catalog.out_of_stock")}
+                </button>
                 {marketplaceRow}
                 {favoritesLoaded && (
                   <button
@@ -573,6 +605,15 @@ export default function ProductPageClient({ product }: { product: Product }) {
             {product.title}
           </h1>
 
+          {!inStock && (
+            <div
+              className="rounded-2xl border border-amber-200/80 bg-amber-50/95 p-3 text-left text-sm leading-snug text-amber-900 shadow-sm sm:p-3.5 sm:text-[15px]"
+              role="status"
+            >
+              {t("product.unavailable_banner")}
+            </div>
+          )}
+
           {product.articleCode && (
             <p className="text-xs font-medium text-zinc-500 sm:text-sm">Артикул: {product.articleCode}</p>
           )}
@@ -590,10 +631,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
             </div>
             <span
               className={`w-fit shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold sm:px-2.5 sm:py-1 sm:text-xs lg:text-sm ${
-                inStock ? "bg-emerald-100/90 text-emerald-800" : "bg-red-100/90 text-red-800"
+                inStock ? "bg-emerald-100/90 text-emerald-800" : "bg-zinc-200/90 text-zinc-600"
               }`}
             >
-              {inStock ? "В наличии" : "Нет в наличии"}
+              {inStock ? t("product.stock_badge_in") : t("catalog.out_of_stock")}
             </span>
           </div>
 

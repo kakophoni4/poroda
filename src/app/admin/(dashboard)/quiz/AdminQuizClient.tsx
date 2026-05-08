@@ -47,14 +47,6 @@ export default function AdminQuizClient({ initial }: { initial: QuizQuestionRow[
     alert((data as { error?: string }).error || `Ошибка ${res.status}`);
   }, []);
 
-  const loadList = useCallback(async () => {
-    const res = await fetch("/api/admin/quiz");
-    if (res.ok) {
-      const data = await res.json();
-      setList(data);
-    }
-  }, []);
-
   const openEditQuestion = (q: QuizQuestionRow) => {
     setEditQ(q);
     setCreateQ(false);

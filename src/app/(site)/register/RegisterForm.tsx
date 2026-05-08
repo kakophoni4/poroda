@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PhoneInput from "@/components/PhoneInput";
 import { isRuPhoneComplete, ruPhoneNational10 } from "@/lib/phone-ru";
+import { safeNextPath } from "@/lib/safe-redirect";
 
 export default function RegisterForm() {
   const sp = useSearchParams();
+  const fromParam = sp.get("from");
+  const afterRegister = useMemo(() => safeNextPath(fromParam, "/account/orders"), [fromParam]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("+7");
@@ -17,7 +20,7 @@ export default function RegisterForm() {
 
   useEffect(() => {
     const e = sp.get("email");
-    if (e) setEmail(decodeURIComponent(e));
+    if (e) queueMicrotask(() => setEmail(decodeURIComponent(e)));
   }, [sp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +42,7 @@ export default function RegisterForm() {
       setError(data.error || "Ошибка регистрации");
       return;
     }
-    router.push("/account/orders");
+    router.push(afterRegister);
     router.refresh();
   };
 
@@ -80,11 +83,12 @@ export default function RegisterForm() {
           id="reg-password"
           type="password"
           required
-          minLength={6}
+          minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="liquid-input mt-1 w-full rounded-xl px-4 py-2.5"
         />
+        <p className="mt-1.5 text-xs text-zinc-500">минимум 8 символов, буква и цифра</p>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button type="submit" className="w-full rounded-2xl bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800">

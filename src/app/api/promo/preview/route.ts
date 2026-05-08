@@ -13,6 +13,16 @@ export async function GET(request: NextRequest) {
   try {
     const promo = await prisma.promo.findFirst({
       where: { code: code.toUpperCase(), active: true },
+      select: {
+        percent: true,
+        discountRub: true,
+        maxUses: true,
+        usedCount: true,
+        validFrom: true,
+        validTo: true,
+        active: true,
+        minOrderTotal: true,
+      },
     });
     if (!promo) {
       return NextResponse.json({ ok: false, error: "Промокод не найден" });

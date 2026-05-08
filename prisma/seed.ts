@@ -5,11 +5,12 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 config({ path: path.resolve(process.cwd(), ".env") });
-// Для Supabase: сид лучше запускать с прямым подключением (Session), иначе pooler:6543 может обрывать соединение.
-const raw = process.env.SEED_DATABASE_URL ?? process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:5432/poroda";
-const isSupabase = raw.includes("supabase") || raw.includes("pooler.");
-const connectionString = isSupabase ? `${raw}${raw.includes("?") ? "&" : "?"}connect_timeout=60` : raw;
-const poolConfig = isSupabase
+// PgBouncer (pooler) или url с sslmode: дольше connect_timeout и TLS; иначе pooler может рвать соединение.
+const raw = process.env.DATABASE_URL ?? "postgresql://poroda:poroda@127.0.0.1:5433/poroda?schema=public";
+const urlSaysSsl = /[?&]sslmode=(require|no-verify|verify-full|prefer)(?:&|$)/i.test(raw);
+const usePooledTls = raw.includes("pooler.") || urlSaysSsl;
+const connectionString = usePooledTls ? `${raw}${raw.includes("?") ? "&" : "?"}connect_timeout=60` : raw;
+const poolConfig = usePooledTls
   ? { connectionString, ssl: { rejectUnauthorized: false } as const, connectionTimeoutMillis: 60000 }
   : { connectionString };
 const adapter = new PrismaPg(poolConfig);
@@ -45,7 +46,7 @@ async function main() {
     update: {},
     create: { slug: "creams", title: "Кремы", sortOrder: 3 },
   });
-  const catSets = await prisma.category.upsert({
+  await prisma.category.upsert({
     where: { slug: "sets" },
     update: {},
     create: { slug: "sets", title: "Наборы", sortOrder: 4 },
@@ -55,7 +56,7 @@ async function main() {
     update: {},
     create: { slug: "toners", title: "Тонизация", sortOrder: 5 },
   });
-  const catMasks = await prisma.category.upsert({
+  await prisma.category.upsert({
     where: { slug: "masks" },
     update: {},
     create: { slug: "masks", title: "Маски", sortOrder: 6 },
@@ -72,18 +73,28 @@ async function main() {
     { slug: "flyuid", title: "Флюид", shortDesc: "Лёгкая текстура, быстрое впитывание. Увлажнение без липкости.", categoryId: catCreams.id, price: 1190, imageUrl: "/images/poroda/7/1.jpg", sortOrder: 16 },
   ];
 
+  /**
+   * upsert с `update: {}` — сидер ИДЕМПОТЕНТНЫЙ: при повторном запуске
+   * НЕ затрёт правки заказчика (фото, цены, описания), только досоздаст недостающее.
+   * Если хотите принудительно сбросить шаблонный товар к дефолтам — удалите его в админке,
+   * на следующем `db:seed` он будет создан заново.
+   */
   for (const data of testProducts) {
     await prisma.product.upsert({
       where: { slug: data.slug },
-      update: { imageUrl: data.imageUrl },
+      update: {},
       create: { ...data, skinTypes: ["все типы"] },
     });
   }
 
-  // Пример развёрнутой карточки продукции (как skinprobiotic) — сыворотка
+  // Демо-карточка с расширенным описанием — создаётся ТОЛЬКО если её ещё нет (без updateMany).
   try {
-    await prisma.product.updateMany({
-      where: { slug: "syvorotka-niacinamide" },
+    const demoExists = await prisma.product.findFirst({
+      where: { slug: "syvorotka-niacinamide", articleCode: "SP2081" },
+      select: { id: true },
+    });
+    if (!demoExists) await prisma.product.updateMany({
+      where: { slug: "syvorotka-niacinamide", articleCode: null },
       data: {
         title: "Сыворотка-бустер с транексамовой кислотой и арбутином SkinSOS",
         price: 3200,
@@ -150,7 +161,7 @@ async function main() {
     },
   });
 
-  // Баннер на главной (таблица создаётся через npx prisma db push)
+  // Баннер на главной — создаётся один раз; правки заказчика в админке не трогаем.
   try {
     await prisma.homePromoBanner.upsert({
       where: { id: "seed-banner-main" },
@@ -183,7 +194,7 @@ async function main() {
     for (let i = 0; i < concernTitles.length; i++) {
       await prisma.homeConcernCard.upsert({
         where: { id: `seed-concern-${i}` },
-        update: { title: concernTitles[i] },
+        update: {},
         create: {
           id: `seed-concern-${i}`,
           title: concernTitles[i],
@@ -203,7 +214,7 @@ async function main() {
   try {
     const q = await prisma.quizQuestion.upsert({
       where: { id: "seed-quiz-skin" },
-      update: { title: "Выберите тип вашей кожи" },
+      update: {},
       create: {
         id: "seed-quiz-skin",
         title: "Выберите тип вашей кожи",
@@ -220,7 +231,7 @@ async function main() {
       const a = answers[i];
       await prisma.quizAnswer.upsert({
         where: { id: `seed-quiz-answer-${i}` },
-        update: { label: a.label, linkUrl: a.linkUrl, sortOrder: a.sortOrder },
+        update: {},
         create: {
           id: `seed-quiz-answer-${i}`,
           questionId: q.id,
@@ -279,7 +290,7 @@ async function main() {
       const a = articleSeeds[i];
       await prisma.homeArticle.upsert({
         where: { id: `seed-article-${i}` },
-        update: { title: a.title, linkUrl: a.linkUrl, description: a.description, sortOrder: a.sortOrder },
+        update: {},
         create: {
           id: `seed-article-${i}`,
           title: a.title,

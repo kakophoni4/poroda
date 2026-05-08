@@ -1,6 +1,7 @@
 import AboutSubnav from "@/components/AboutSubnav";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
+import Link from "next/link";
 
 export default function PhilosophyPage() {
   return (
@@ -45,12 +46,12 @@ export default function PhilosophyPage() {
         </div>
 
         <nav className="mt-12 flex justify-center">
-          <a
+          <Link
             href="/catalog"
             className="rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
           >
             Вся продукция
-          </a>
+          </Link>
         </nav>
       </Container>
     </PageShell>

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
+import { parseMinOrderTotal } from "@/lib/min-order-total";
 
 export async function GET() {
   const session = await getAdminSession();
@@ -10,6 +12,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
@@ -23,6 +27,7 @@ export async function POST(request: NextRequest) {
     active,
     isDermatologist,
     dermatologistRewardPercent,
+    minOrderTotal,
   } = body as {
     code: string;
     percent: number;
@@ -33,8 +38,11 @@ export async function POST(request: NextRequest) {
     active?: boolean;
     isDermatologist?: boolean;
     dermatologistRewardPercent?: number | null;
+    minOrderTotal?: unknown;
   };
   if (!code?.trim() || percent == null) return NextResponse.json({ error: "code, percent обязательны" }, { status: 400 });
+  const minParsed = parseMinOrderTotal(minOrderTotal);
+  if (!minParsed.ok) return NextResponse.json({ error: minParsed.error }, { status: 400 });
   const derm = !!isDermatologist;
   const reward = dermatologistRewardPercent;
   if (derm && (reward == null || reward < 0 || reward > 100 || !Number.isFinite(reward))) {
@@ -48,6 +56,7 @@ export async function POST(request: NextRequest) {
       code: code.trim().toUpperCase(),
       percent,
       description: description?.trim() || null,
+      minOrderTotal: minParsed.value,
       maxUses: maxUses ?? null,
       validFrom: validFrom ? new Date(validFrom) : null,
       validTo: validTo ? new Date(validTo) : null,

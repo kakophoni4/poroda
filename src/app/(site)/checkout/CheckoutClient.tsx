@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import CheckoutSpinWheel from "@/components/CheckoutSpinWheel";
 import PhoneInput from "@/components/PhoneInput";
@@ -9,12 +9,13 @@ import type { Product } from "@/lib/catalog-data";
 import { useCart } from "@/context/CartContext";
 import { useSiteCopy } from "@/context/SiteCopyContext";
 import { isRuPhoneComplete } from "@/lib/phone-ru";
+import { fetchProductStockByIds, lineIsUnavailable, type ProductStockInfo } from "@/lib/product-stock-client";
 
 export default function CheckoutClient({ products }: { products: Product[] }) {
   const t = useSiteCopy();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { lines, addProduct, setQuantity, removeProduct, clearCart, hydrated } = useCart();
+  const { lines, addProduct, setQuantity, removeProduct, clearCart, hydrated, cartStockEpoch } = useCart();
   const mergedFromUrl = useRef(false);
 
   useEffect(() => {
@@ -24,8 +25,15 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
     if (productId) {
       const product = products.find((p) => p.id === productId);
       if (product) {
+        const ok = (product as Product & { inStock?: boolean }).inStock !== false;
         addProduct(
-          { id: product.id, slug: product.slug, title: product.title, price: product.price },
+          {
+            id: product.id,
+            slug: product.slug,
+            title: product.title,
+            price: product.price,
+            inStock: ok,
+          },
           qty
         );
       }
@@ -47,6 +55,14 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
   const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
   /** Итог с учётом промокода (превью по API) */
   const [promoPreviewTotal, setPromoPreviewTotal] = useState<number | null>(null);
+  const [lineStock, setLineStock] = useState<Map<string, ProductStockInfo> | null>(null);
+  const [stockCheckPending, setStockCheckPending] = useState(false);
+  const [outOfStockBanner, setOutOfStockBanner] = useState<string[]>([]);
+  const lineIdKey = useMemo(() => lines.map((l) => l.productId).sort().join("\u0000"), [lines]);
+  const linesRef = useRef(lines);
+  useLayoutEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
 
   const cartRows = useMemo(() => {
     return lines.map((line) => {
@@ -89,9 +105,65 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
     };
   }, [promoCode, total]);
 
+  useEffect(() => {
+    if (outOfStockBanner.length === 0) return;
+    const tmr = window.setTimeout(() => setOutOfStockBanner([]), 14_000);
+    return () => window.clearTimeout(tmr);
+  }, [outOfStockBanner]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const L = linesRef.current;
+    if (L.length === 0) {
+      setLineStock(new Map());
+      setStockCheckPending(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setStockCheckPending(true);
+      const res = await fetchProductStockByIds(L.map((l) => l.productId));
+      if (cancelled) return;
+      if (res == null) {
+        setLineStock(null);
+        setStockCheckPending(false);
+        return;
+      }
+      const m = new Map(res.map((r) => [r.id, r]));
+      const toRemove: { productId: string; title: string }[] = [];
+      for (const l of L) {
+        if (lineIsUnavailable(m.get(l.productId)))
+          toRemove.push({ productId: l.productId, title: l.title });
+      }
+      if (toRemove.length > 0) {
+        setOutOfStockBanner(toRemove.map((x) => x.title));
+        toRemove.forEach((x) => removeProduct(x.productId));
+        setLineStock(m);
+        setStockCheckPending(false);
+        return;
+      }
+      setLineStock(m);
+      setStockCheckPending(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, lineIdKey, cartStockEpoch, removeProduct]);
+
+  const checkoutHasStockProblem = useMemo(() => {
+    if (stockCheckPending) return true;
+    if (lines.length === 0) return false;
+    if (lineStock == null) return false;
+    for (const l of lines) {
+      if (lineIsUnavailable(lineStock.get(l.productId))) return true;
+    }
+    return false;
+  }, [lines, lineStock, stockCheckPending]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cartRows.length === 0) return;
+    if (checkoutHasStockProblem) return;
     if (!privacyConsent) {
       alert(t("checkout.alert_consent"));
       return;
@@ -111,19 +183,19 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
           phone,
           name,
           address,
-          items: cartRows.map(({ line, title, price }) => ({
+          /** Сервер сам пересчитает цены/total — отправляем только productId и quantity. */
+          items: cartRows.map(({ line }) => ({
             productId: line.productId,
-            title,
-            price,
             quantity: line.quantity,
           })),
           promoCode: promoCode.trim() || undefined,
-          total,
+          paymentMethod: payMethod,
         }),
       });
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error || t("checkout.error_order"));
       const orderId = orderData.order?.id || orderData.orderNumber;
+      /** Серверный total — единственный источник истины для оплаты. */
       const finalTotal = orderData.order?.total ?? total;
       const rt = orderData.order?.reviewToken as string | undefined;
       const emailQ = email.trim() ? `&email=${encodeURIComponent(email.trim())}` : "";
@@ -136,16 +208,22 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderNumber: orderId,
-            amount: finalTotal,
             returnUrl,
             description: `Заказ PORODA ${orderId}`,
+            reviewToken: rt,
           }),
         });
         const data = await res.json();
         if (data.confirmationUrl) {
           setPaymentAmount(finalTotal);
           clearCart();
-          setPaymentUrl(data.confirmationUrl);
+          const url = String(data.confirmationUrl);
+          /** Редиректим сразу (ожидаемое поведение). */
+          try {
+            window.location.assign(url);
+          } catch {
+            setPaymentUrl(url);
+          }
           return;
         }
         if (!res.ok) throw new Error(data.error || t("checkout.error_payment"));
@@ -192,6 +270,15 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 grid gap-8 lg:grid-cols-2">
+      {outOfStockBanner.length > 0 && (
+        <div
+          className="col-span-full liquidGlass-dock rounded-2xl border border-red-300/80 bg-red-50/90 p-4 text-sm text-red-900"
+          role="alert"
+        >
+          <p className="font-medium">{t("checkout.cannot_proceed_out_of_stock")}</p>
+          <p className="mt-1">{outOfStockBanner.join(", ")}</p>
+        </div>
+      )}
       <div className="space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-zinc-700">{t("checkout.field_name")}</label>
@@ -298,7 +385,11 @@ export default function CheckoutClient({ products }: { products: Product[] }) {
               {t("checkout.consent_after")}
             </span>
           </label>
-          <button type="submit" disabled={isSubmitting || !privacyConsent} className="mt-6 w-full rounded-2xl bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={isSubmitting || !privacyConsent || checkoutHasStockProblem}
+            className="mt-6 w-full rounded-2xl bg-zinc-900 py-3 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+          >
             {payMethod === "online" ? t("checkout.btn_pay") : t("checkout.btn_submit")}
           </button>
           <Link href="/catalog" className="mt-4 block text-center text-sm text-zinc-600 hover:text-zinc-900">

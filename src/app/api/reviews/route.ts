@@ -1,8 +1,10 @@
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
-import { findOrderForReviewAccess } from "@/lib/review-order-access";
-import { normalizeOrderStatus } from "@/lib/order-status";
+import { findOrderForReviewAccess, getOrderReviewIneligibilityMessage } from "@/lib/review-order-access";
+import { createReviewRewardForOrder } from "@/lib/review-reward";
 
 /** Опубликованные отзывы для страницы «О нас — отзывы» */
 export async function GET() {
@@ -29,6 +31,8 @@ const MAX_IMAGES = 6;
 
 /** Отправка отзыва: orderId + reviewToken ИЛИ владелец заказа в сессии; только после статуса «доставлен» */
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   try {
     const body = await request.json();
     const { orderId, token, authorName, body: text, rating, imageUrls } = body as {
@@ -50,11 +54,9 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    if (normalizeOrderStatus(order.status) !== "delivered") {
-      return NextResponse.json(
-        { error: "Отзыв можно оставить после того, как заказ будет доставлен. Мы сообщим об этом в кабинете или по связи." },
-        { status: 400 }
-      );
+    const payBlock = getOrderReviewIneligibilityMessage(order);
+    if (payBlock) {
+      return NextResponse.json({ error: payBlock }, { status: 400 });
     }
     const name = authorName?.trim() ?? "";
     const reviewBody = text?.trim() ?? "";
@@ -80,17 +82,29 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return NextResponse.json({ error: "По этому заказу отзыв уже отправлен." }, { status: 409 });
     }
-    await prisma.customerReview.create({
-      data: {
-        orderId: order.id,
-        authorName: name,
-        body: reviewBody,
-        rating: r,
-        imageUrls: urls,
-        status: "pending",
-      },
-    });
-    return NextResponse.json({ ok: true });
+    try {
+      const rewardCode = await prisma.$transaction(async (tx) => {
+        const { code } = await createReviewRewardForOrder(order.id, order.userId ?? null, tx);
+        await tx.customerReview.create({
+          data: {
+            orderId: order.id,
+            authorName: name,
+            body: reviewBody,
+            rating: r,
+            imageUrls: urls,
+            status: "pending",
+            rewardCode: code,
+          },
+        });
+        return code;
+      });
+      return NextResponse.json({ ok: true, rewardCode });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        return NextResponse.json({ error: "По этому заказу отзыв уже отправлен." }, { status: 409 });
+      }
+      throw e;
+    }
   } catch (e) {
     console.error("Review POST:", e);
     return NextResponse.json({ error: "Не удалось сохранить отзыв." }, { status: 500 });

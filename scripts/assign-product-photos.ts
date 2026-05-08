@@ -11,8 +11,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 config({ path: path.resolve(process.cwd(), ".env") });
 const raw = process.env.DATABASE_URL ?? "postgresql://postgres:qwe@localhost:5432/poroda";
+const urlSaysSsl = /[?&]sslmode=(require|no-verify|verify-full|prefer)(?:&|$)/i.test(raw);
 const poolConfig =
-  raw.includes("supabase") || raw.includes("pooler.")
+  raw.includes("pooler.") || urlSaysSsl
     ? { connectionString: raw, ssl: { rejectUnauthorized: false } as const }
     : { connectionString: raw };
 const adapter = new PrismaPg(poolConfig);

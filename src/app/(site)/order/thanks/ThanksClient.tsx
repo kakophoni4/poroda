@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const TG = "https://t.me/porodacosmetics";
+
+type PaymentInfo = {
+  paymentMethod: "online" | "on_delivery" | string;
+  paymentStatus: "unpaid" | "pending" | "paid" | "failed" | "refunded" | string;
+  paymentStatusLabel: string;
+  total: number;
+};
 
 export default function ThanksClient() {
   const sp = useSearchParams();
@@ -12,6 +19,9 @@ export default function ThanksClient() {
   const rt = sp.get("rt") ?? "";
   const emailHint = sp.get("email") ?? "";
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [payment, setPayment] = useState<PaymentInfo | null>(null);
+  const [pollErr, setPollErr] = useState<string | null>(null);
+  const stopRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +37,48 @@ export default function ThanksClient() {
       cancelled = true;
     };
   }, []);
+
+  /** Опрос статуса оплаты с экспоненциальным бэкоффом. */
+  const pollOnce = useCallback(async () => {
+    if (!orderId) return null;
+    const qs = new URLSearchParams({ orderId });
+    if (rt) qs.set("rt", rt);
+    try {
+      const res = await fetch(`/api/payment/status?${qs.toString()}`);
+      if (!res.ok) {
+        setPollErr("Не удалось получить статус оплаты.");
+        return null;
+      }
+      const data = (await res.json()) as PaymentInfo;
+      setPayment(data);
+      setPollErr(null);
+      return data;
+    } catch {
+      setPollErr("Ошибка сети при проверке статуса оплаты.");
+      return null;
+    }
+  }, [orderId, rt]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    stopRef.current = false;
+    let attempt = 0;
+    const tick = async () => {
+      if (stopRef.current) return;
+      const data = await pollOnce();
+      attempt += 1;
+      const finished = !data
+        ? false
+        : data.paymentMethod !== "online" || data.paymentStatus === "paid" || data.paymentStatus === "failed" || data.paymentStatus === "refunded";
+      if (finished || attempt >= 12) return;
+      const delay = Math.min(20_000, 3_000 * Math.pow(1.4, attempt - 1));
+      setTimeout(tick, delay);
+    };
+    tick();
+    return () => {
+      stopRef.current = true;
+    };
+  }, [orderId, pollOnce]);
 
   if (!orderId) {
     return (
@@ -46,13 +98,42 @@ export default function ThanksClient() {
     ? `/login?from=${encodeURIComponent("/account/orders")}&email=${encodeURIComponent(emailHint)}`
     : `/login?from=${encodeURIComponent("/account/orders")}`;
 
+  const isOnline = payment?.paymentMethod === "online";
+  const isPaid = payment?.paymentStatus === "paid";
+  const isFailed = payment?.paymentStatus === "failed";
+  const isPending = !payment || payment.paymentStatus === "pending" || payment.paymentStatus === "unpaid";
+
+  let panelClass = "border-emerald-200/60 bg-emerald-50/30";
+  let title = "Спасибо за заказ!";
+  let subtitle = "В ближайшее время мы свяжемся с вами для уточнения деталей доставки.";
+  if (isOnline) {
+    if (isPaid) {
+      panelClass = "border-emerald-200/60 bg-emerald-50/30";
+      title = "Оплата получена!";
+      subtitle = "Спасибо! Мы уже начали собирать ваш заказ.";
+    } else if (isFailed) {
+      panelClass = "border-rose-200/60 bg-rose-50/30";
+      title = "Оплата не прошла";
+      subtitle = "Попробуйте оплатить ещё раз или напишите нам в Telegram — поможем разобраться.";
+    } else if (isPending) {
+      panelClass = "border-amber-200/60 bg-amber-50/30";
+      title = "Ожидаем подтверждения банка";
+      subtitle = "Это займёт до минуты. Не закрывайте страницу или вернитесь позже — статус обновится автоматически.";
+    }
+  }
+
   return (
     <div className="mx-auto mt-8 max-w-lg">
-      <div className="frost-panel rounded-3xl border border-emerald-200/60 bg-emerald-50/30 p-8 text-center sm:p-10">
-        <p className="text-2xl font-semibold text-zinc-900">Спасибо за заказ!</p>
-        <p className="mt-4 text-sm leading-relaxed text-zinc-700">
-          В ближайшее время мы свяжемся с вами для уточнения деталей доставки.
-        </p>
+      <div className={`frost-panel rounded-3xl border ${panelClass} p-8 text-center sm:p-10`}>
+        <p className="text-2xl font-semibold text-zinc-900">{title}</p>
+        <p className="mt-4 text-sm leading-relaxed text-zinc-700">{subtitle}</p>
+        {payment ? (
+          <p className="mt-3 text-xs text-zinc-600">
+            Статус оплаты: <strong>{payment.paymentStatusLabel}</strong>
+            {payment.total ? ` • ${payment.total.toLocaleString("ru-RU")} ₽` : ""}
+          </p>
+        ) : null}
+        {pollErr ? <p className="mt-2 text-xs text-rose-700">{pollErr}</p> : null}
         <a
           href={TG}
           target="_blank"

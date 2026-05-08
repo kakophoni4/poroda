@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PORODA — спираль от левого нижнего угла</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.25rem;
+        padding: 1rem;
+        background: #09090b;
+        color: #a1a1aa;
+        font-family: system-ui, sans-serif;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #fafafa;
+        text-align: center;
+      }
+      p.desc {
+        margin: 0;
+        max-width: 30rem;
+        text-align: center;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: #71717a;
+      }
+      .stage-wrap {
+        width: min(92vw, 420px);
+        background: #000;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: center;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 999px;
+        padding: 0.55rem 1.2rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        background: #fafafa;
+        color: #18181b;
+      }
+      button:hover {
+        background: #e4e4e7;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.85rem;
+        color: #a1a1aa;
+      }
+      input[type="range"] {
+        width: 160px;
+      }
+      code {
+        font-size: 0.85em;
+        background: #27272a;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        color: #e4e4e7;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Плавное появление по спирали</h1>
+    <p class="desc">
+      <code>фото PORODA/1.png</code> → <code>public/logo-poroda-frame-1.png</code>. Картинка проявляется из
+      <strong>левого нижнего угла</strong> узкой дорожкой, закручивается к <strong>центру</strong> (без рывков, ease in-out).
+      Дальше можно подставить отдельные части — тем же приёмом, по очереди.
+    </p>
+    <div class="stage-wrap">
+      <svg id="stage" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="maskSoft" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.25" />
+          </filter>
+          <mask id="spiralMask" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+            <rect width="100" height="100" fill="black" />
+            <path
+              id="spiralPath"
+              fill="none"
+              stroke="white"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              filter="url(#maskSoft)"
+            />
+          </mask>
+        </defs>
+        <image
+          id="hero"
+          width="100"
+          height="100"
+          preserveAspectRatio="xMidYMid meet"
+          mask="url(#spiralMask)"
+        />
+      </svg>
+    </div>
+    <div class="controls">
+      <button type="button" id="replay">Перезапустить</button>
+      <label>
+        Длительность, с
+        <input type="range" id="durSec" min="1.5" max="6" step="0.25" value="3.2" />
+        <span id="durVal">3.2</span>
+      </label>
+    </div>
+    <script>
+      (function () {
+        const href = new URL("logo-poroda-frame-1.png", window.location.href).href;
+        const hero = document.getElementById("hero");
+        hero.setAttributeNS("http://www.w3.org/1999/xlink", "href", href);
+        hero.setAttribute("href", href);
+
+        const spiralPath = document.getElementById("spiralPath");
+        const cx = 50;
+        const cy = 50;
+        const startX = 0.8;
+        const startY = 99.2;
+        const turns = 4.25;
+        const segments = 520;
+
+        const dx0 = startX - cx;
+        const dy0 = startY - cy;
+        const rMax = Math.hypot(dx0, dy0);
+        const angle0 = Math.atan2(dy0, dx0);
+
+        function easeInOutCubic(t) {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        function buildSpiralD() {
+          const parts = [];
+          for (let i = 0; i <= segments; i++) {
+            const u = i / segments;
+            const e = easeInOutCubic(u);
+            const r = rMax * Math.pow(1 - e, 1.15);
+            const theta = angle0 + turns * 2 * Math.PI * u;
+            const x = cx + r * Math.cos(theta);
+            const y = cy + r * Math.sin(theta);
+            parts.push((i === 0 ? "M " : " L ") + x.toFixed(3) + " " + y.toFixed(3));
+          }
+          return parts.join("");
+        }
+
+        const d = buildSpiralD();
+        spiralPath.setAttribute("d", d);
+
+        const len = spiralPath.getTotalLength();
+        const strokeW = Math.max(14, (rMax / turns) * 1.35);
+        spiralPath.setAttribute("stroke-width", String(strokeW));
+        spiralPath.style.strokeDasharray = String(len);
+        spiralPath.style.strokeDashoffset = String(len);
+
+        function getDurationMs() {
+          return Number(document.getElementById("durSec").value) * 1000;
+        }
+
+        function play() {
+          spiralPath.style.transition = "none";
+          spiralPath.style.strokeDashoffset = String(len);
+
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              const ms = getDurationMs();
+              const easing = "cubic-bezier(0.42, 0, 0.2, 1)";
+              spiralPath.style.transition = "stroke-dashoffset " + ms + "ms " + easing;
+              spiralPath.style.strokeDashoffset = "0";
+            });
+          });
+        }
+
+        document.getElementById("replay").addEventListener("click", play);
+        document.getElementById("durSec").addEventListener("input", function () {
+          document.getElementById("durVal").textContent = document.getElementById("durSec").value;
+        });
+        document.getElementById("durVal").textContent = document.getElementById("durSec").value;
+
+        const probe = new Image();
+        probe.onload = function () {
+          play();
+        };
+        probe.onerror = function () {
+          document.querySelector(".desc").textContent =
+            "Нет файла logo-poroda-frame-1.png в public/. Скопируй туда фото PORODA/1.png.";
+        };
+        probe.src = href;
+      })();
+    </script>
+  </body>
+</html>

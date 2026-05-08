@@ -120,6 +120,7 @@ export default function AdminHomeBannersClient({ initial }: { initial: HomePromo
               placeholder="/images/... или полный URL"
             />
             {form.imageUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element -- превью по произвольному URL из формы, без оптимизации */
               <img src={form.imageUrl} alt="" className="mt-2 max-h-32 w-full rounded-lg border object-cover" />
             )}
           </div>
@@ -218,6 +219,7 @@ export default function AdminHomeBannersClient({ initial }: { initial: HomePromo
       </p>
       {list.map((row) => (
         <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-zinc-200 p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element -- превью в списке, URL из БД */}
           <img src={row.imageUrl} alt="" className="h-20 w-40 rounded-lg border object-cover sm:h-24 sm:w-48" />
           <div className="min-w-0 flex-1">
             <div className="text-sm">

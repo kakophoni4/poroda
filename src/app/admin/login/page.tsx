@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Container from "@/components/Container";
 
@@ -61,7 +62,7 @@ export default function AdminLoginPage() {
               Войти
             </button>
           </form>
-          <a href="/" className="mt-4 block text-center text-sm text-zinc-500 hover:text-zinc-700">← На сайт</a>
+          <Link href="/" className="mt-4 block text-center text-sm text-zinc-500 hover:text-zinc-700">← На сайт</Link>
         </div>
       </Container>
     </div>

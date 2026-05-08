@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type ProductStat = {
   productId: string;
@@ -33,9 +34,12 @@ export default function AdminAnalyticsClient() {
   return (
     <div className="mt-6 space-y-8">
       <div className="rounded-2xl border border-zinc-200 p-6">
-        <h3 className="font-medium">Всего посещений (просмотров страниц)</h3>
+        <h3 className="font-medium">Всего просмотров страниц</h3>
         <p className="mt-2 text-3xl font-semibold">{data.totalVisits.toLocaleString("ru-RU")}</p>
-        <p className="mt-1 text-sm text-zinc-500">Учитывается каждый переход на страницу (в т.ч. каталог, карточка продукции).</p>
+        <p className="mt-1 text-sm text-zinc-500">
+          Каждый трекерный переход = одна запись. Это не число уникальных гостей. Уникальные пользователи, IP/дни — в{" "}
+          <Link className="underline" href="/admin/stats">Статистике</Link>.
+        </p>
       </div>
 
       {data.productStats && data.productStats.length > 0 && (

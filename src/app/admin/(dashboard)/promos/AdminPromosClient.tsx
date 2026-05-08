@@ -9,6 +9,7 @@ const emptyForm = () => ({
   code: "",
   percent: 10,
   description: "",
+  minOrderTotal: "" as number | "",
   maxUses: "" as number | "",
   active: true,
   isDermatologist: false,
@@ -44,6 +45,7 @@ export default function AdminPromosClient({ initialPromos, orderStatsByPromoId }
       code: p.code,
       percent: p.percent,
       description: p.description || "",
+      minOrderTotal: p.minOrderTotal ?? "",
       maxUses: p.maxUses ?? "",
       active: p.active,
       isDermatologist: p.isDermatologist,
@@ -59,6 +61,7 @@ export default function AdminPromosClient({ initialPromos, orderStatsByPromoId }
 
   const payloadBody = () => ({
     ...form,
+    minOrderTotal: form.minOrderTotal === "" ? null : form.minOrderTotal,
     maxUses: form.maxUses === "" ? null : form.maxUses,
     dermatologistRewardPercent: form.isDermatologist ? form.dermatologistRewardPercent : null,
   });
@@ -125,6 +128,21 @@ export default function AdminPromosClient({ initialPromos, orderStatsByPromoId }
         <input
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-zinc-600">Мин. сумма заказа, ₽ (пусто = без порога)</label>
+        <input
+          type="number"
+          min={0}
+          value={form.minOrderTotal}
+          onChange={(e) =>
+            setForm((f) => ({
+              ...f,
+              minOrderTotal: e.target.value === "" ? "" : Number(e.target.value),
+            }))
+          }
           className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
         />
       </div>
@@ -196,6 +214,9 @@ export default function AdminPromosClient({ initialPromos, orderStatsByPromoId }
                 )}
               </div>
               {p.description && <p className="mt-1 text-sm text-zinc-600">{p.description}</p>}
+              {p.minOrderTotal != null && p.minOrderTotal > 0 && (
+                <p className="mt-1 text-xs text-zinc-500">Мин. сумма заказа: {p.minOrderTotal.toLocaleString("ru-RU")} ₽</p>
+              )}
               <p className="text-xs text-zinc-500">
                 Срабатываний по лимиту промо: {p.usedCount} {p.maxUses != null ? `/ ${p.maxUses}` : ""}
               </p>

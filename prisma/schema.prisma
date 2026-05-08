@@ -30,20 +30,50 @@ model User {
   passwordHash  String
   name          String?
   phone         String?
+  emailVerifiedAt DateTime?
+  /// Согласие на маркетинговые письма (акции, новости)
+  marketingOptIn  Boolean  @default(true)
   createdAt     DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   orders        Order[]
   promoUses     PromoUse[]
-  notifications UserNotification[]
-  favorites     UserFavorite[]
+  notifications   UserNotification[]
+  favorites       UserFavorite[]
+  passwordResets  PasswordResetToken[]
+  emailVerifications EmailVerificationToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique // sha256(token) hex
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  slug      String    @unique
-  title     String
-  sortOrder Int       @default(0)
-  products  Product[]
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  sortOrder   Int       @default(0)
+  archivedAt  DateTime?
+  products    Product[]
 }
 
 model Product {
@@ -52,7 +82,7 @@ model Product {
   title        String
   shortDesc    String?
   categoryId   String
-  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category     Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   price        Int
   oldPrice     Int?
   isNew        Boolean  @default(false)
@@ -87,9 +117,12 @@ model Product {
   linkOzon         String? // Ozon
   linkYandexMarket String? // Яндекс Маркет
   dermatologistVideoUrl String? // видео-обзор дерматолога (YouTube, Vimeo, прямой mp4/webm)
+  archivedAt   DateTime? // снятие с витрины без потери ссылок из OrderItem
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   orderItems   OrderItem[]
+
+  @@index([archivedAt])
   pageViews    PageView[]
   userFavorites UserFavorite[]
 }
@@ -117,6 +150,11 @@ model Order {
   promoCode     String?
   promoId       String?
   paymentId     String?
+  /// Способ оплаты: online | on_delivery
+  paymentMethod String      @default("online")
+  /// Статус оплаты: unpaid | pending | paid | failed | refunded
+  paymentStatus String      @default("unpaid")
+  paymentCheckedAt DateTime?
   total         Int
   /// Секретная ссылка для формы отзыва после заказа
   reviewToken   String?     @unique
@@ -124,6 +162,23 @@ model Order {
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
   review        CustomerReview?
+  paymentEvents PaymentEvent[]
+}
+
+/// Журнал сырых callback-уведомлений all2pay (оплата): подпись, id заказа в банке, распознанный статус
+model PaymentEvent {
+  id             String   @id @default(cuid())
+  orderId        String?
+  order          Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  /// Внешний id заказа в платёжном шлюзе (mdOrder / orderId в callback)
+  paymentId      String?
+  rawPayload     Json
+  signatureValid Boolean
+  /// Распознанный внутренний статус: paid, failed, refunded, pending, ignored, …
+  status         String?
+  createdAt      DateTime @default(now())
+
+  @@index([paymentId])
 }
 
 /// Отзыв покупателя (после заказа); на сайте только после одобрения в админке
@@ -177,6 +232,8 @@ model Promo {
   usedCount   Int        @default(0)
   validFrom   DateTime?
   validTo     DateTime?
+  /// Минимальная сумма корзины (в ₽) для применения промокода
+  minOrderTotal Int?
   active      Boolean    @default(true)
   /// Промокод дерматолога: в админке считаются заказы и вознаграждение (% от суммы заказов)
   isDermatologist           Boolean @default(false)
@@ -195,11 +252,16 @@ model WheelGlobalCounter {
 
 /// Ограничение частоты: не чаще одного вращения в час на пару email+телефон
 model WheelSpinLog {
-  id        String   @id @default(cuid())
-  emailNorm String
-  phoneNorm String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  emailNorm  String
+  phoneNorm  String
+  /// «YYYYMMDD-HH», тот же час, что в уникальном индексе
+  hourBucket String
+  createdAt  DateTime @default(now())
 
+  @@unique([emailNorm, hourBucket])
+  @@unique([phoneNorm, hourBucket])
+  @@index([hourBucket])
   @@index([emailNorm, phoneNorm, createdAt])
 }
 
@@ -218,6 +280,12 @@ model Mailing {
   subject   String
   body      String
   sentAt    DateTime?
+  /// Сколько уведомлений создано в ЛК (всем пользователям, если рассылка в кабинет)
+  sentInbox    Int?
+  /// Успешно отправлено писем (только согласившиеся и с подтверждённой почтой)
+  sentEmailOk  Int?
+  /// Ошибки SMTP / конфигурации
+  sentEmailFail Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -237,8 +305,14 @@ model PageView {
   productId String?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   path      String
+  referrer  String?
   userId    String?
+  /// SHA-256(ip + secret); для агрегатов «сессий» по дням без сырого IP
+  ipHash    String?
   createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+  @@index([userId, createdAt])
 }
 
 /// Акционные баннеры на главной (карусель на всю ширину экрана)
@@ -301,4 +375,20 @@ model HomeArticle {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+/// Журнал попыток входа/регистрации для rate limit (только бизнес-успех/неуспех, без сырого IP)
+model AuthAttempt {
+  id         String   @id @default(cuid())
+  /// sha256(ip + SESSION_SECRET) — без хранения сырого IP
+  ipHash     String
+  /// нормализованный email или "anon"
+  identifier String
+  /// user_login | register | admin_login
+  scope      String
+  success    Boolean
+  createdAt  DateTime @default(now())
+
+  @@index([scope, identifier, createdAt])
+  @@index([scope, ipHash, createdAt])
 }

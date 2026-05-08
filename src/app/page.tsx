@@ -9,6 +9,7 @@ import { getActiveHomeConcernCards } from "@/lib/home-concern-cards";
 import { FALLBACK_HOME_ARTICLES, FALLBACK_HOME_CONCERN_CARDS } from "@/lib/home-page-fallbacks";
 import { getActiveHomePromoBanners } from "@/lib/home-promo-banners";
 import { getSiteCopyMap } from "@/lib/site-copy-server";
+import { randomInt } from "crypto";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function HomePage() {
   const concernCardsToShow = concernCards.length > 0 ? concernCards : FALLBACK_HOME_CONCERN_CARDS;
   const articlesToShow = articles.length > 0 ? articles : FALLBACK_HOME_ARTICLES;
   const randomArticle =
-    articlesToShow.length > 0 ? articlesToShow[Math.floor(Math.random() * articlesToShow.length)] : null;
+    articlesToShow.length > 0 ? articlesToShow[randomInt(articlesToShow.length)] : null;
 
   return (
     <PageShell>
@@ -37,6 +38,7 @@ export default async function HomePage() {
         <section className="mt-6 opacity-0 animate-fade-in-up sm:mt-8">
           <div className="grid grid-cols-[minmax(0,0.42fr)_minmax(0,1fr)] items-stretch gap-3 sm:grid-cols-[minmax(0,0.45fr)_minmax(0,1fr)] sm:gap-6 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-8 lg:gap-10 xl:gap-12">
             <div className="liquidGlass-dock relative h-full min-h-[min(100%,200px)] w-full overflow-hidden rounded-2xl border border-white/40 shadow-sm sm:min-h-[min(100%,240px)] sm:rounded-3xl md:min-h-0">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static hero, fixed path; no layout shift requirement */}
               <img
                 src="/images/obshchie/hero.jpg"
                 alt=""
@@ -56,12 +58,12 @@ export default async function HomePage() {
                 </p>
               </div>
               <div className="mt-8 hidden flex-row flex-wrap gap-3 md:mt-10 md:flex">
-                <a
+                <Link
                   href="/catalog"
                   className="inline-flex items-center justify-center rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800"
                 >
                   {copy["home.hero.cta_primary"]}
-                </a>
+                </Link>
                 <a
                   href="/about"
                   className="glass-subtle inline-flex items-center justify-center rounded-2xl border border-white/45 px-6 py-3 text-sm font-medium text-zinc-900 shadow-sm transition hover:bg-white/45"
@@ -71,12 +73,12 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="col-span-2 mt-2 flex w-full flex-col items-center gap-2.5 md:hidden sm:mt-3">
-              <a
+              <Link
                 href="/catalog"
                 className="inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-zinc-900 px-5 py-2.5 text-xs font-medium text-white shadow-sm transition hover:bg-zinc-800 sm:px-6 sm:py-3 sm:text-sm"
               >
                 {copy["home.hero.cta_primary"]}
-              </a>
+              </Link>
               <a
                 href="/about"
                 className="glass-subtle inline-flex w-full max-w-sm items-center justify-center rounded-2xl border border-white/45 px-5 py-2.5 text-xs font-medium text-zinc-900 shadow-sm transition hover:bg-white/45 sm:px-6 sm:py-3 sm:text-sm"

@@ -1,5 +1,6 @@
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
+import Link from "next/link";
 
 export default function OfferPage() {
   return (
@@ -36,9 +37,9 @@ export default function OfferPage() {
                 </li>
                 <li>
                   <strong>1.3.</strong> Сайт – совокупность веб-страниц, объединенных общим доменным именем{" "}
-                  <a href="https://porodacosmetics.ru/" className="text-zinc-900 underline">
+                  <Link href="/" className="text-zinc-900 underline">
                     https://porodacosmetics.ru/
-                  </a>{" "}
+                  </Link>{" "}
                   - Интернет-магазин. На нем представлены товары, которые продавец предлагает покупателям, условия
                   приобретения, доставки, оплаты, возврата и обмена товаров, а также иная информация, подлежащая
                   размещению в соответствии с законом. Сайт доступен круглосуточно. Рабочие часы магазина (обработка,

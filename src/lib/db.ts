@@ -5,7 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-/** Конфиг для pg: SSL для Supabase; для удалённой БД — таймаут подключения. */
+/** Конфиг для pg: TLS для PgBouncer/URL с sslmode; для удалённой БД — таймаут подключения. */
 function getPoolConfig(): { connectionString: string; ssl?: { rejectUnauthorized: false }; connectionTimeoutMillis?: number } {
   loadEnv({ path: path.join(process.cwd(), ".env") });
   let connectionString =
@@ -16,7 +16,10 @@ function getPoolConfig(): { connectionString: string; ssl?: { rejectUnauthorized
     const sep = connectionString.includes("?") ? "&" : "?";
     connectionString = `${connectionString}${sep}connect_timeout=25`;
   }
-  const needsSsl = (connectionString.includes("supabase") || connectionString.includes("pooler.")) && !connectionString.includes("sslmode=");
+  const urlSaysSsl = /[?&]sslmode=(require|no-verify|verify-full|prefer)(?:&|$)/i.test(connectionString);
+  const isHostPooler = connectionString.includes("pooler.");
+  const needsSsl =
+    (isHostPooler || (isRemote && urlSaysSsl)) && !/sslmode=disable/i.test(connectionString);
   const config: { connectionString: string; ssl?: { rejectUnauthorized: false }; connectionTimeoutMillis?: number } = needsSsl
     ? { connectionString, ssl: { rejectUnauthorized: false } }
     : { connectionString };

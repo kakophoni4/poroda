@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   try {
     const body = await request.json();
     const { name, email, phone, body: message } = body as {

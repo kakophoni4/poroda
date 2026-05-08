@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import OrderThanksBanner from "./OrderThanksBanner";
 import { accountCardClass } from "./account-ui";
 
-export default function AccountPage() {
+export default async function AccountPage() {
   return (
     <>
       <Suspense fallback={null}>

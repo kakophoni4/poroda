@@ -136,6 +136,7 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
               placeholder="/images/... или URL"
             />
             {form.imageUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element -- превью по URL из формы */
               <img src={form.imageUrl} alt="" className="mt-2 max-h-28 w-full rounded-lg border object-cover" />
             )}
           </div>
@@ -215,6 +216,7 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
       </p>
       {list.map((row) => (
         <div key={row.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-zinc-200 p-4">
+          {/* eslint-disable-next-line @next/next/no-img-element -- миниатюра из БД */}
           <img src={row.imageUrl} alt="" className="h-16 w-24 rounded-lg border object-cover sm:h-20 sm:w-32" />
           <div className="min-w-0 flex-1">
             <div className="font-medium">{row.title}</div>

@@ -180,6 +180,7 @@ export default function CheckoutSpinWheel({ email, phone, onCode, disabled }: Pr
         <div className="mt-4 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 text-sm">
           <p className="font-semibold text-zinc-900">Ваш приз: {result.label}</p>
           <p className="mt-2 font-mono text-base font-bold tracking-wide text-zinc-900">{result.code}</p>
+          <p className="mt-1 text-xs text-zinc-600">Действует при сумме заказа от 3&nbsp;500 ₽</p>
           <p className="mt-2 text-xs leading-relaxed text-zinc-700">{result.hint}</p>
           <p className="mt-2 text-xs text-zinc-500">
             Действует до: {new Date(result.validUntil).toLocaleString("ru-RU")}

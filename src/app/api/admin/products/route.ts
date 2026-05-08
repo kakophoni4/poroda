@@ -1,21 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
+import { assertSameOrigin } from "@/lib/csrf";
+import { parseAdminListPagination, totalPages } from "@/lib/admin-list-pagination";
 import { prisma } from "@/lib/db";
 import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
 import { parseMarketplaceUrl } from "@/lib/marketplace-links";
-import { parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
+import { DERMATOLOGIST_VIDEO_INVALID_MESSAGE, parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
+import {
+  nullIfEmptyRich,
+  sanitizePlainString,
+  sanitizeRichTextLines,
+  sanitizeStringList,
+  sanitizeText,
+} from "@/lib/sanitize";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const products = await prisma.product.findMany({
-    orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }],
-    include: { category: { select: { slug: true, title: true } } },
+  const { page, limit, skip } = parseAdminListPagination(new URL(request.url).searchParams);
+  const [total, data] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.findMany({
+      skip,
+      take: limit,
+      orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }],
+      include: { category: true },
+    }),
+  ]);
+  return NextResponse.json({
+    data,
+    total,
+    page,
+    limit,
+    totalPages: totalPages(total, limit),
   });
-  return NextResponse.json(products);
 }
 
 export async function POST(request: NextRequest) {
+  const csrf = assertSameOrigin(request);
+  if (csrf) return csrf;
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json();
@@ -99,58 +122,62 @@ export async function POST(request: NextRequest) {
   if (!slug || !title || !categoryId || price == null) {
     return NextResponse.json({ error: "slug, title, categoryId, price обязательны" }, { status: 400 });
   }
-  const titleTrim = String(title).trim();
+  if (dermatologistVideoUrl != null && String(dermatologistVideoUrl).trim() !== "" && !parseDermatologistVideoUrl(dermatologistVideoUrl)) {
+    return NextResponse.json({ error: DERMATOLOGIST_VIDEO_INVALID_MESSAGE }, { status: 400 });
+  }
+  const titleTrim = sanitizePlainString(String(title)).trim();
   if (titleTrim.length > MAX_PRODUCT_TITLE_LENGTH) {
     return NextResponse.json(
       { error: `Название не длиннее ${MAX_PRODUCT_TITLE_LENGTH} символов` },
       { status: 400 }
     );
   }
+  const slugSafe = sanitizeText(String(slug).trim(), 200);
   const urls = Array.isArray(imageUrls) ? imageUrls.map((u) => String(u).trim()).filter(Boolean) : [];
   const focusX = imageFocusX != null ? Math.max(0, Math.min(100, Number(imageFocusX))) : null;
   const focusY = imageFocusY != null ? Math.max(0, Math.min(100, Number(imageFocusY))) : null;
   const product = await prisma.product.create({
     data: {
-      slug: slug.trim(),
+      slug: slugSafe,
       title: titleTrim,
-      shortDesc: shortDesc?.trim() || null,
+      shortDesc: nullIfEmptyRich(shortDesc),
       categoryId,
       price: Math.round(price),
       oldPrice: oldPrice != null ? Math.round(oldPrice) : null,
       isNew: !!isNew,
       isPromo: !!isPromo,
       isBestseller: !!isBestseller,
-      skinTypes: Array.isArray(skinTypes) ? skinTypes : [],
+      skinTypes: sanitizeStringList(skinTypes),
       imageUrl: imageUrl?.trim() || urls[0] || null,
       imageUrls: urls,
       imageFocusX: focusX,
       imageFocusY: focusY,
-      composition: composition?.trim() || null,
-      components: components?.trim() || null,
-      extraField1: extraField1?.trim() || null,
-      extraField2: extraField2?.trim() || null,
+      composition: nullIfEmptyRich(composition),
+      components: nullIfEmptyRich(components),
+      extraField1: nullIfEmptyRich(extraField1),
+      extraField2: nullIfEmptyRich(extraField2),
       featuredSortOrder: featuredSortOrder != null && String(featuredSortOrder).trim() !== "" ? Math.max(0, Math.floor(Number(featuredSortOrder))) : null,
-      articleCode: articleCode?.trim() || null,
-      problemText: problemText?.trim() || null,
-      careStageText: careStageText?.trim() || null,
-      skinTypesLine: skinTypesLine?.trim() || null,
-      scientistsTitle: scientistsTitle?.trim() || null,
+      articleCode: articleCode?.trim() ? sanitizeText(articleCode.trim(), 80) : null,
+      problemText: nullIfEmptyRich(problemText),
+      careStageText: nullIfEmptyRich(careStageText),
+      skinTypesLine: nullIfEmptyRich(skinTypesLine),
+      scientistsTitle: nullIfEmptyRich(scientistsTitle),
       researchLinks:
         Array.isArray(researchLinks) && researchLinks.length > 0
           ? researchLinks
               .filter((x) => x?.label?.trim())
-              .map((x) => ({ label: x.label.trim(), ...(x.url?.trim() ? { url: x.url.trim() } : {}) }))
+              .map((x) => ({
+                label: sanitizeText(String(x.label), 200).trim(),
+                ...(x.url?.trim() ? { url: String(x.url).trim() } : {}),
+              }))
           : [],
-      forWhatText: forWhatText?.trim() || null,
-      howItWorksLines:
-        Array.isArray(howItWorksLines) && howItWorksLines.length > 0
-          ? howItWorksLines.map((s) => String(s).trim()).filter(Boolean)
-          : [],
-      howToUseText: howToUseText?.trim() || null,
-      inciText: inciText?.trim() || null,
-      volumeText: volumeText?.trim() || null,
-      shelfLifeText: shelfLifeText?.trim() || null,
-      countryText: countryText?.trim() || null,
+      forWhatText: nullIfEmptyRich(forWhatText),
+      howItWorksLines: sanitizeRichTextLines(howItWorksLines),
+      howToUseText: nullIfEmptyRich(howToUseText),
+      inciText: nullIfEmptyRich(inciText),
+      volumeText: nullIfEmptyRich(volumeText),
+      shelfLifeText: nullIfEmptyRich(shelfLifeText),
+      countryText: nullIfEmptyRich(countryText),
       inStock: inStock !== false,
       linkWildberries: parseMarketplaceUrl(linkWildberries),
       linkOzon: parseMarketplaceUrl(linkOzon),

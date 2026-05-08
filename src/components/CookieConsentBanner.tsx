@@ -24,7 +24,9 @@ export default function CookieConsentBanner() {
   useEffect(() => {
     if (!pathname || pathname.startsWith("/admin")) return;
     if (typeof window === "undefined") return;
-    setVisible(!hasAcceptedCookies());
+    queueMicrotask(() => {
+      setVisible(!hasAcceptedCookies());
+    });
   }, [pathname]);
 
   const accept = () => {

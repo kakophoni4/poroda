@@ -1,5 +1,6 @@
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
+import Link from "next/link";
 
 export default function TermsPage() {
   return (
@@ -16,9 +17,9 @@ export default function TermsPage() {
                   <strong>1.1.</strong> Настоящее Пользовательское Соглашение (далее - Соглашение) определяет правила
                   и порядок отношений между ИП Гафурова Гельнур Габдельхаковна (далее - Правообладатель) и Пользователем
                   сети Интернет (далее – Пользователь) возникающие при использовании Сайта расположенного по адресу:{" "}
-                  <a href="https://porodacosmetics.ru/" className="text-zinc-900 underline">
+                  <Link href="/" className="text-zinc-900 underline">
                     https://porodacosmetics.ru/
-                  </a>{" "}
+                  </Link>{" "}
                   (далее – Сайт) на указанных в настоящем документе условиях.
                 </li>
                 <li>
@@ -115,9 +116,9 @@ export default function TermsPage() {
                   <strong>5.2.</strong> Сбор и обработка персональных данных на Сайте осуществляется в соответствии с
                   действующим законодательством и Политикой обработки персональных данных, доступной для ознакомления на
                   Сайте по адресу:{" "}
-                  <a href="https://porodacosmetics.ru/legal/privacy" className="text-zinc-900 underline">
+                  <Link href="/legal/privacy" className="text-zinc-900 underline">
                     porodacosmetics.ru/legal/privacy
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </section>

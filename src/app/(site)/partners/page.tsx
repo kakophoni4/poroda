@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Container from "@/components/Container";
 import PageShell from "@/components/PageShell";
 
@@ -39,11 +40,13 @@ export default function PartnersPage() {
         </p>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-start">
-          <div className="liquidGlass-dock aspect-[4/3] overflow-hidden rounded-3xl border border-white/40">
-            <img
-              src="/images/obshchie/IMG_0795.JPG"
+          <div className="liquidGlass-dock relative aspect-[4/3] overflow-hidden rounded-3xl border border-white/40">
+            <Image
+              src="/img/placeholder.jpg"
               alt="Сотрудничество с PORODA"
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 448px"
             />
           </div>
           <div className="space-y-4 text-base leading-relaxed text-zinc-700">

@@ -111,6 +111,7 @@ export default function HomePromoBanners({ banners }: Props) {
             className="relative min-w-full shrink-0 snap-center snap-always overflow-hidden"
           >
             <div className={`relative w-full overflow-hidden ${heightClass}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- полноширинный слайд, src из БД/конфига */}
               <img
                 src={b.imageUrl}
                 alt=""

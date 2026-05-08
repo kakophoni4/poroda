@@ -5,16 +5,21 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "postbuild": "node scripts/sync-standalone-static.mjs",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset-admin": "npx tsx prisma/reset-admin-password.ts",
+    "db:clean-test-data": "npx tsx prisma/clean-test-data.ts",
     "db:studio": "prisma studio",
     "copy-photos": "node scripts/copy-poroda-photos.js",
     "assign-photos": "npx tsx scripts/assign-product-photos.ts",
-    "compress-images": "node scripts/compress-images.mjs"
+    "compress-images": "node scripts/compress-images.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.1",
@@ -22,22 +27,31 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
     "next": "16.1.6",
+    "nodemailer": "^8.0.5",
     "pg": "^8.18.0",
     "prisma": "^7.4.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "sanitize-html": "^2.17.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
+    "@vitest/coverage-v8": "^4.1.5",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "jsdom": "^29.0.2",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

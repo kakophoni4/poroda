@@ -10,7 +10,9 @@ export async function GET(
     where: { slug },
     include: { category: { select: { slug: true, title: true } } },
   });
-  if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!product || product.archivedAt != null) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   return NextResponse.json({
     id: product.id,
     slug: product.slug,
