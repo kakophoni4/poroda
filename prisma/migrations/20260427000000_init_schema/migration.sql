@@ -1,3 +1,7 @@
+[dotenv@17.3.1] injecting env (26) from .env -- tip: ЁЯЫбя╕П auth for agents: https://vestauth.com
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateTable
 CREATE TABLE "Admin" (
     "id" TEXT NOT NULL,
@@ -29,6 +33,7 @@ CREATE TABLE "User" (
     "name" TEXT,
     "phone" TEXT,
     "emailVerifiedAt" TIMESTAMP(3),
+    "marketingOptIn" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -97,7 +102,7 @@ CREATE TABLE "Product" (
     "problemText" TEXT,
     "careStageText" TEXT,
     "skinTypesLine" TEXT,
-    "scientistsTitle" TEXT DEFAULT 'Что говорят ученые?',
+    "scientistsTitle" TEXT DEFAULT '╨з╤В╨╛ ╨│╨╛╨▓╨╛╤А╤П╤В ╤Г╤З╨╡╨╜╤Л╨╡?',
     "researchLinks" JSONB,
     "forWhatText" TEXT,
     "howItWorksLines" JSONB,
@@ -217,6 +222,7 @@ CREATE TABLE "Promo" (
     "usedCount" INTEGER NOT NULL DEFAULT 0,
     "validFrom" TIMESTAMP(3),
     "validTo" TIMESTAMP(3),
+    "minOrderTotal" INTEGER,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "isDermatologist" BOOLEAN NOT NULL DEFAULT false,
     "dermatologistRewardPercent" INTEGER,
@@ -262,6 +268,9 @@ CREATE TABLE "Mailing" (
     "subject" TEXT NOT NULL,
     "body" TEXT NOT NULL,
     "sentAt" TIMESTAMP(3),
+    "sentInbox" INTEGER,
+    "sentEmailOk" INTEGER,
+    "sentEmailFail" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -490,3 +499,4 @@ ALTER TABLE "QuizAnswer" ADD CONSTRAINT "QuizAnswer_questionId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "QuizAnswer" ADD CONSTRAINT "QuizAnswer_nextQuestionId_fkey" FOREIGN KEY ("nextQuestionId") REFERENCES "QuizQuestion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
