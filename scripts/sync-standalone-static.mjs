@@ -15,6 +15,10 @@ const root = path.resolve(__dirname, "..");
 const standalone = path.join(root, ".next", "standalone");
 
 if (!fs.existsSync(standalone)) {
+  console.warn(
+    "[sync-standalone-static] .next/standalone missing — standalone output was not produced. " +
+      "Deploy will use `next start` instead of .next/standalone/server.js."
+  );
   process.exit(0);
 }
 

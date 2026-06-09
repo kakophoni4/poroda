@@ -14,4 +14,10 @@ export NODE_ENV=production
 export PORT="${PORT:-3000}"
 export HOSTNAME="${HOSTNAME:-0.0.0.0}"
 
-exec node /srv/poroda-site/.next/standalone/server.js
+STANDALONE_SERVER="/srv/poroda-site/.next/standalone/server.js"
+if [[ -f "$STANDALONE_SERVER" ]]; then
+  exec node "$STANDALONE_SERVER"
+fi
+
+echo "[start-prod] .next/standalone/server.js not found — falling back to next start" >&2
+exec npm run start -- --hostname "${HOSTNAME}" --port "${PORT}"
