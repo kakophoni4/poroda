@@ -9,6 +9,16 @@ const SALT_ROUNDS = 10;
 const USER_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 дней
 const ADMIN_TTL_SECONDS = 60 * 60 * 8; // 8 часов
 
+/** Secure-cookie: явно COOKIE_SECURE, иначе по схеме NEXT_PUBLIC_SITE_URL, иначе production. */
+function useSecureCookies(): boolean {
+  const flag = process.env.COOKIE_SECURE?.trim().toLowerCase();
+  if (flag === "true" || flag === "1") return true;
+  if (flag === "false" || flag === "0") return false;
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (site) return site.startsWith("https://");
+  return process.env.NODE_ENV === "production";
+}
+
 if (process.env.NODE_ENV === "production" && SECRET === "change-me-in-production") {
   /** В проде без секрета сессии тривиально подделываются. Громко падаем при первом импорте. */
   throw new Error("SESSION_SECRET is not set. Generate a strong random string and put it in .env");
@@ -125,7 +135,7 @@ export async function setUserSession(session: UserSession): Promise<void> {
   const c = await cookies();
   c.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: useSecureCookies(),
     sameSite: "lax",
     maxAge: USER_TTL_SECONDS,
     path: "/",
@@ -137,7 +147,7 @@ export async function setAdminSession(session: AdminSession): Promise<void> {
   const c = await cookies();
   c.set(ADMIN_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: useSecureCookies(),
     sameSite: "lax",
     maxAge: ADMIN_TTL_SECONDS,
     path: "/",
