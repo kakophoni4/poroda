@@ -246,13 +246,21 @@ npm run build
 - `.next/static/*` → `.next/standalone/.next/static/`
 - `public/*` (кроме `uploads/` — он у нас симлинком из VPS-папки) → `.next/standalone/public/`
 
-Запуск:
+Запуск (в репо есть `start-prod.sh` — подтягивает `.env`, выставляет `NODE_ENV=production`):
 ```bash
-pm2 start ecosystem.config.cjs --env production
-# или быстрый вариант, если файла ecosystem нет:
-pm2 start "node .next/standalone/server.js" --name poroda --env production --update-env
+chmod +x start-prod.sh
+pm2 start start-prod.sh --name poroda --interpreter bash
 pm2 save
 pm2 startup systemd     # один раз — зарегистрировать автозапуск
+```
+
+> **Не задавай `NODE_ENV` в `.env`.** Если там `NODE_ENV=development`, `next build` в Next.js 16
+> падает на prerender `/_global-error` (`useContext` null). Next сам выставляет режим:
+> `next dev` → development, `next build` / standalone → production.
+
+Альтернатива без скрипта:
+```bash
+pm2 start ecosystem.config.cjs --env production
 ```
 
 Минимальный `ecosystem.config.cjs` (положи в корень проекта, по желанию):
