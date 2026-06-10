@@ -181,27 +181,29 @@ npx prisma migrate resolve --applied 20260427000000_init_schema
 
 ---
 
-## 5. Симлинк для загрузок (вариант без nginx alias)
+## 5. Загрузки (`UPLOAD_DIR`) и сборка
 
-Чтобы Next отдавал загруженные файлы как статику и они переживали ребилды:
+В `.env` задай `UPLOAD_DIR=/var/poroda/uploads`. **Не создавай** симлинк `public/uploads` в корне проекта —
+Turbopack (Next.js 16) падает при `npm run build`, если `public/uploads` указывает вне папки проекта.
 
-```bash
-# гарантируем, что в репо нет папки uploads (она в .gitignore, но проверим)
-rm -rf /srv/poroda-site/public/uploads
+Скрипты делают это автоматически:
+- `prebuild` — удаляет `public/uploads`, если это симлинк (файлы в `/var/poroda/uploads` не трогает)
+- `postbuild` — симлинк `.next/standalone/public/uploads` → `UPLOAD_DIR` для runtime
 
-# симлинк на постоянный диск
-ln -sfn /var/poroda/uploads /srv/poroda-site/public/uploads
+**Рекомендуется (надёжнее):** nginx alias, симлинки не нужны:
+```nginx
+location /uploads/ {
+    alias /var/poroda/uploads/;
+    expires 30d;
+    access_log off;
+}
 ```
 
-> **Альтернатива:** оставить `public/uploads` без симлинка и добавить в nginx:
-> ```nginx
-> location /uploads/ {
->     alias /var/poroda/uploads/;
->     expires 30d;
->     access_log off;
-> }
-> ```
-> Тогда симлинк не нужен. Выбери что-то одно.
+Если на сервере остался старый симлинк и build падает — один раз:
+```bash
+rm -f /srv/poroda-site/public/uploads   # только ссылка, не rm -rf!
+npm run build
+```
 
 ---
 

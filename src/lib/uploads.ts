@@ -8,12 +8,11 @@ import path from "node:path";
  * - На VPS лучше задать `UPLOAD_DIR=/var/poroda/uploads` (или иной постоянный путь),
  *   а сам путь подключить к веб-серверу — двумя способами:
  *
- *   1) Симлинк до сборки:
- *        mkdir -p /var/poroda/uploads
- *        ln -sfn /var/poroda/uploads /srv/poroda-site/public/uploads
- *      Тогда даже если задана UPLOAD_DIR, файлы будут видны и через статический /uploads.
+ *   1) nginx alias (рекомендуется):
+ *   2) postbuild создаёт симлинк `.next/standalone/public/uploads` → UPLOAD_DIR.
+ *      Не делайте симлинк `public/uploads` в корне — ломает `next build` (Turbopack).
  *
- *   2) nginx alias:
+ *   nginx alias:
  *        location /uploads/ { alias /var/poroda/uploads/; }
  *      В этом случае Next к /uploads вообще не обращается.
  *
