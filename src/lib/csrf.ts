@@ -1,7 +1,24 @@
+function addOrigin(allowed: Set<string>, raw: string | null | undefined) {
+  if (!raw?.trim()) return;
+  try {
+    allowed.add(new URL(raw.trim()).origin);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function isSameOrigin(request: Request): boolean {
   const allowed = new Set<string>();
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (site) allowed.add(new URL(site).origin);
+  addOrigin(allowed, process.env.NEXT_PUBLIC_SITE_URL);
+
+  // Host из запроса (IP VPS, www, порт nginx) — не только NEXT_PUBLIC_SITE_URL
+  const hostHeader = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (hostHeader) {
+    const host = hostHeader.split(",")[0]?.trim();
+    const proto = (request.headers.get("x-forwarded-proto") ?? "http").split(",")[0]?.trim() || "http";
+    if (host) addOrigin(allowed, `${proto}://${host}`);
+  }
+
   // dev: разрешаем localhost и LAN dev origins из next.config (allowedDevOrigins)
   if (process.env.NODE_ENV !== "production") {
     allowed.add("http://localhost:3000");

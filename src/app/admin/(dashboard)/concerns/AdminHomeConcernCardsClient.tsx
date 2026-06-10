@@ -37,8 +37,14 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
       fd.append("file", file);
       fd.append("folder", "concerns");
       const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.url) setForm((f) => ({ ...f, imageUrl: data.url }));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) setForm((f) => ({ ...f, imageUrl: data.url }));
+      } else {
+        await showError(res);
+      }
+    } catch {
+      alert("Не удалось загрузить фото. Проверьте сеть.");
     } finally {
       setUploading(false);
     }
@@ -117,18 +123,20 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
           <div>
             <label className="block text-xs font-medium text-zinc-600">Фото (обязательно)</label>
             <div className="mt-1 flex flex-wrap items-center gap-3">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                disabled={uploading}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void uploadImage(f);
-                  e.target.value = "";
-                }}
-                className="text-sm"
-              />
-              {uploading && <span className="text-xs text-zinc-500">Загрузка…</span>}
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  disabled={uploading}
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void uploadImage(f);
+                    e.target.value = "";
+                  }}
+                />
+                {uploading ? "Загрузка…" : "Выбрать файл"}
+              </label>
             </div>
             <input
               type="text"
