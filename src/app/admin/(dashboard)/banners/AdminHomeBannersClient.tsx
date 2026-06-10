@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { HomePromoBanner } from "@prisma/client";
+import AdminImageUploadField from "@/components/admin/AdminImageUploadField";
 
 const emptyForm = () => ({
   imageUrl: "",
@@ -101,37 +102,13 @@ export default function AdminHomeBannersClient({ initial }: { initial: HomePromo
       <div className="my-8 w-full max-w-lg rounded-2xl bg-white p-6">
         <h3 className="font-semibold">{creating ? "Новый баннер" : "Редактировать баннер"}</h3>
         <div className="mt-4 space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-zinc-600">Фото баннера (обязательно)</label>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  disabled={uploading}
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadImage(f);
-                    e.target.value = "";
-                  }}
-                />
-                {uploading ? "Загрузка…" : "Выбрать файл"}
-              </label>
-            </div>
-            <p className="mt-1 text-xs text-zinc-500">Или укажите URL картинки (например /images/obshchie/hero.jpg):</p>
-            <input
-              type="text"
-              value={form.imageUrl}
-              onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              placeholder="/images/... или полный URL"
-            />
-            {form.imageUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element -- превью по произвольному URL из формы, без оптимизации */
-              <img src={form.imageUrl} alt="" className="mt-2 max-h-32 w-full rounded-lg border object-cover" />
-            )}
-          </div>
+          <AdminImageUploadField
+            label="Фото баннера (обязательно)"
+            imageUrl={form.imageUrl}
+            uploading={uploading}
+            onImageUrlChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+            onFileSelect={(f) => void uploadImage(f)}
+          />
           <div>
             <label className="block text-xs font-medium text-zinc-600">Ссылка кнопки (URL или /catalog и т.п.)</label>
             <input

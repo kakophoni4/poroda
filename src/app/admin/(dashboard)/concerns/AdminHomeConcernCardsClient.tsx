@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { HomeConcernCard } from "@prisma/client";
+import AdminImageUploadField from "@/components/admin/AdminImageUploadField";
 import { CONCERN_TAGS_QUERY } from "@/lib/concern-catalog";
 
 const emptyForm = () => ({
@@ -120,36 +121,13 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
               placeholder="Акне и воспаления"
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-600">Фото (обязательно)</label>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm hover:bg-zinc-50 disabled:opacity-50">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  disabled={uploading}
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void uploadImage(f);
-                    e.target.value = "";
-                  }}
-                />
-                {uploading ? "Загрузка…" : "Выбрать файл"}
-              </label>
-            </div>
-            <input
-              type="text"
-              value={form.imageUrl}
-              onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              placeholder="/images/... или URL"
-            />
-            {form.imageUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element -- превью по URL из формы */
-              <img src={form.imageUrl} alt="" className="mt-2 max-h-28 w-full rounded-lg border object-cover" />
-            )}
-          </div>
+          <AdminImageUploadField
+            label="Фото (обязательно)"
+            imageUrl={form.imageUrl}
+            uploading={uploading}
+            onImageUrlChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+            onFileSelect={(f) => void uploadImage(f)}
+          />
           <div>
             <label className="block text-xs font-medium text-zinc-600">Фильтр каталога при клике</label>
             <select
