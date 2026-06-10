@@ -14,7 +14,9 @@ echo ""
 
 echo "--- build artifacts ---"
 ls -la .next/standalone/server.js 2>/dev/null || echo "✗ Нет .next/standalone/server.js — нужен npm run build"
+ls -la .next/prerender-manifest.json 2>/dev/null || echo "✗ Нет .next/prerender-manifest.json — сборка неполная, rm -rf .next && npm run build"
 ls -la public/uploads 2>/dev/null || echo "public/uploads: нет (нормально, если UPLOAD_DIR + postbuild)"
+grep '^HOSTNAME=' .env 2>/dev/null && echo "⚠ Удалите HOSTNAME из .env — ломает bind: sed -i '/^HOSTNAME=/d' .env"
 echo ""
 
 echo "--- pm2 ---"
@@ -30,8 +32,25 @@ fi
 echo ""
 
 echo "--- local health ---"
-curl -s -m 5 -o /tmp/poroda-health.txt -w "HTTP %{http_code}\n" http://127.0.0.1:3000/api/health || echo "curl failed"
-head -c 200 /tmp/poroda-health.txt 2>/dev/null; echo
+health_ok=0
+for url in http://127.0.0.1:3000/api/health http://[::1]:3000/api/health; do
+  code=$(curl -s -m 5 -o /tmp/poroda-health.txt -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+  echo "$url → HTTP $code"
+  if [[ "$code" == "200" ]]; then
+    health_ok=1
+    head -c 200 /tmp/poroda-health.txt 2>/dev/null; echo
+    break
+  fi
+done
+if [[ "$health_ok" -eq 0 ]]; then
+  bind=$(ss -tlnp 2>/dev/null | grep ':3000 ' | head -1)
+  if [[ -n "$bind" ]]; then
+    echo "⚠ Порт 3000 слушает не на 127.0.0.1 (часто HOSTNAME в .env). Bind: $bind"
+    echo "  fix: sed -i '/^HOSTNAME=/d' .env && pm2 restart poroda"
+  else
+    echo "✗ Ничего не отвечает на :3000"
+  fi
+fi
 echo ""
 
 echo "--- last pm2 errors ---"

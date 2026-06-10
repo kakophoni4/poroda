@@ -4,16 +4,17 @@ ROOT="/srv/poroda-site"
 cd "$ROOT"
 
 # .env без NODE_ENV (development в .env ломает next build и может сбивать runtime)
-unset NODE_ENV
+# HOSTNAME в .env или в shell ломает bind (147.45.224.200:3000 → curl 127.0.0.1 не работает)
+unset NODE_ENV HOSTNAME
 set -a
 # shellcheck disable=SC1091
 source "$ROOT/.env"
 set +a
-unset NODE_ENV
+unset NODE_ENV HOSTNAME
 
 export NODE_ENV=production
 export PORT="${PORT:-3000}"
-export HOSTNAME="${HOSTNAME:-0.0.0.0}"
+export HOSTNAME="0.0.0.0"
 
 STANDALONE_DIR="$ROOT/.next/standalone"
 STANDALONE_SERVER="$STANDALONE_DIR/server.js"
@@ -25,5 +26,4 @@ if [[ -f "$STANDALONE_SERVER" ]]; then
 fi
 
 echo "[start-prod] ERROR: $STANDALONE_SERVER not found. Run: cd $ROOT && npm run build" >&2
-cd "$ROOT"
-exec npm run start -- --hostname "${HOSTNAME}" --port "${PORT}"
+exit 1
