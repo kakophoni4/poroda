@@ -21,8 +21,9 @@ STANDALONE_SERVER="$STANDALONE_DIR/server.js"
 
 if [[ -f "$STANDALONE_SERVER" ]]; then
   # Next.js рекомендует запуск из папки standalone
+  # env HOSTNAME=… — перебивает stale HOSTNAME из pm2 dump (147.45.224.200:3000)
   cd "$STANDALONE_DIR"
-  exec node server.js
+  exec env HOSTNAME="0.0.0.0" NODE_ENV=production PORT="${PORT}" node server.js
 fi
 
 echo "[start-prod] ERROR: $STANDALONE_SERVER not found. Run: cd $ROOT && npm run build" >&2

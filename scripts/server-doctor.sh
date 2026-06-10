@@ -46,7 +46,7 @@ if [[ "$health_ok" -eq 0 ]]; then
   bind=$(ss -tlnp 2>/dev/null | grep ':3000 ' | head -1)
   if [[ -n "$bind" ]]; then
     echo "⚠ Порт 3000 слушает не на 127.0.0.1 (часто HOSTNAME в .env). Bind: $bind"
-    echo "  fix: sed -i '/^HOSTNAME=/d' .env && pm2 restart poroda"
+    echo "  fix: sed -i '/^HOSTNAME=/d' .env && pm2 delete poroda && pm2 start start-prod.sh --name poroda --interpreter bash"
   else
     echo "✗ Ничего не отвечает на :3000"
   fi
