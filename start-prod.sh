@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd /srv/poroda-site
+ROOT="/srv/poroda-site"
+cd "$ROOT"
 
-# Подтягиваем .env (DATABASE_URL, SESSION_SECRET, …). NODE_ENV сюда НЕ кладём —
-# Next.js сам выставляет production при build/start; development в .env ломает next build.
-# NODE_ENV из .env не подхватываем — development в .env ломает next build.
+# .env без NODE_ENV (development в .env ломает next build и может сбивать runtime)
 unset NODE_ENV
 set -a
 # shellcheck disable=SC1091
-. /srv/poroda-site/.env
+source "$ROOT/.env"
 set +a
 unset NODE_ENV
 
@@ -16,10 +15,15 @@ export NODE_ENV=production
 export PORT="${PORT:-3000}"
 export HOSTNAME="${HOSTNAME:-0.0.0.0}"
 
-STANDALONE_SERVER="/srv/poroda-site/.next/standalone/server.js"
+STANDALONE_DIR="$ROOT/.next/standalone"
+STANDALONE_SERVER="$STANDALONE_DIR/server.js"
+
 if [[ -f "$STANDALONE_SERVER" ]]; then
-  exec node "$STANDALONE_SERVER"
+  # Next.js рекомендует запуск из папки standalone
+  cd "$STANDALONE_DIR"
+  exec node server.js
 fi
 
-echo "[start-prod] .next/standalone/server.js not found — falling back to next start" >&2
+echo "[start-prod] ERROR: $STANDALONE_SERVER not found. Run: cd $ROOT && npm run build" >&2
+cd "$ROOT"
 exec npm run start -- --hostname "${HOSTNAME}" --port "${PORT}"
