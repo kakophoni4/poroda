@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
+import { resolveConcernCatalogQuery } from "@/lib/concern-catalog";
 
 type Row = {
   id: string;
@@ -43,6 +44,13 @@ async function createViaRaw(data: {
   `;
   const [row] = await prisma.$queryRaw<Row[]>`SELECT * FROM "HomeConcernCard" WHERE id = ${id}`;
   if (!row) throw new Error("Create failed");
+  const resolvedQuery = resolveConcernCatalogQuery(row.catalogQuery, row.id);
+  if (resolvedQuery !== row.catalogQuery) {
+    await prisma.$executeRaw`
+      UPDATE "HomeConcernCard" SET "catalogQuery" = ${resolvedQuery}, "updatedAt" = ${now} WHERE id = ${id}
+    `;
+    row.catalogQuery = resolvedQuery;
+  }
   return row;
 }
 
@@ -89,10 +97,23 @@ export async function POST(request: NextRequest) {
     active: active ?? true,
   };
 
-  const delegate = (prisma as { homeConcernCard?: { create: (args: unknown) => Promise<unknown> } }).homeConcernCard;
+  const delegate = (prisma as {
+    homeConcernCard?: {
+      create: (args: unknown) => Promise<Row>;
+      update: (args: unknown) => Promise<Row>;
+    };
+  }).homeConcernCard;
   if (delegate?.create) {
     try {
       const row = await delegate.create({ data });
+      const resolvedQuery = resolveConcernCatalogQuery(row.catalogQuery ?? data.catalogQuery, row.id);
+      if (resolvedQuery !== (row.catalogQuery ?? data.catalogQuery)) {
+        const updated = await delegate.update({
+          where: { id: row.id },
+          data: { catalogQuery: resolvedQuery },
+        });
+        return NextResponse.json(updated);
+      }
       return NextResponse.json(row);
     } catch (e: unknown) {
       const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";

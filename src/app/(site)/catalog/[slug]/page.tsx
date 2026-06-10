@@ -38,6 +38,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         linkWildberries?: string | null;
         linkOzon?: string | null;
         linkYandexMarket?: string | null;
+        linkGoldApple?: string | null;
+        linkLetual?: string | null;
         dermatologistVideoUrl?: string | null;
       };
       product = {
@@ -66,6 +68,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         linkWildberries: pd.linkWildberries ?? undefined,
         linkOzon: pd.linkOzon ?? undefined,
         linkYandexMarket: pd.linkYandexMarket ?? undefined,
+        linkGoldApple: pd.linkGoldApple ?? undefined,
+        linkLetual: pd.linkLetual ?? undefined,
         dermatologistVideoUrl: pd.dermatologistVideoUrl ?? undefined,
       };
     }

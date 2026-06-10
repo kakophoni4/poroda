@@ -57,9 +57,6 @@ export default function Footer() {
               <a className={linkClass} href="mailto:hello@porodacosmetics.ru">
                 hello@porodacosmetics.ru
               </a>
-              <a className={linkClass} href="tel:+79084838717">
-                +7 908 483-87-17
-              </a>
               <a
                 className="glass-subtle mt-2 inline-flex w-full max-w-xs items-center justify-center rounded-2xl border border-white/45 px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-sm transition hover:bg-white/45 sm:w-auto sm:self-start"
                 href="/contacts"

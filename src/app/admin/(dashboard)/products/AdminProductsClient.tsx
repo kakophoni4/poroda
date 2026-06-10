@@ -7,6 +7,12 @@ import { parseResearchLinks } from "@/lib/product-detail";
 import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
 
 type ProductWithCat = Product & { category: Category };
+type ConcernOption = { id: string; title: string };
+
+async function showApiError(res: Response, fallback = "Ошибка сохранения") {
+  const data = await res.json().catch(() => ({}));
+  alert((data as { error?: string }).error || `${fallback} (${res.status})`);
+}
 
 const emptyForm = (): {
   slug: string;
@@ -45,6 +51,9 @@ const emptyForm = (): {
   linkWildberries: string;
   linkOzon: string;
   linkYandexMarket: string;
+  linkGoldApple: string;
+  linkLetual: string;
+  concernIds: string[];
   dermatologistVideoUrl: string;
 } => ({
   slug: "",
@@ -83,6 +92,9 @@ const emptyForm = (): {
   linkWildberries: "",
   linkOzon: "",
   linkYandexMarket: "",
+  linkGoldApple: "",
+  linkLetual: "",
+  concernIds: [],
   dermatologistVideoUrl: "",
 });
 
@@ -90,6 +102,7 @@ function ProductForm({
   form,
   setForm,
   categories,
+  concernCards,
   onSave,
   onCancel,
   title,
@@ -98,6 +111,7 @@ function ProductForm({
   form: ReturnType<typeof emptyForm>;
   setForm: React.Dispatch<React.SetStateAction<ReturnType<typeof emptyForm>>>;
   categories: Category[];
+  concernCards: ConcernOption[];
   onSave: () => void;
   onCancel: () => void;
   title: string;
@@ -190,10 +204,13 @@ function ProductForm({
                     for (let i = 0; i < files.length; i++) {
                       const fd = new FormData();
                       fd.set("file", files[i]);
+                      fd.set("folder", "products");
                       const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
                       if (res.ok) {
                         const { url } = await res.json();
                         setForm((prev) => ({ ...prev, imageUrls: [...prev.imageUrls, url] }));
+                      } else {
+                        await showApiError(res, "Не удалось загрузить фото");
                       }
                     }
                     e.target.value = "";
@@ -385,6 +402,41 @@ function ProductForm({
               <span className="text-sm">В наличии</span>
             </label>
           </div>
+          {concernCards.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-zinc-600">Проблемы кожи (теги для подборки на главной)</label>
+              <p className="mt-0.5 text-[11px] text-zinc-500">
+                Отметьте проблемы — товар попадёт в подборку при клике на карточку «Проблемы» на главной.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {concernCards.map((c) => {
+                  const checked = form.concernIds.includes(c.id);
+                  return (
+                    <label
+                      key={c.id}
+                      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${
+                        checked ? "border-violet-400 bg-violet-50" : "border-zinc-200 bg-white"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            concernIds: e.target.checked
+                              ? [...f.concernIds, c.id]
+                              : f.concernIds.filter((id) => id !== c.id),
+                          }))
+                        }
+                      />
+                      {c.title}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-zinc-600">Проблема (текст после «Проблема:»)</label>
             <textarea
@@ -478,6 +530,7 @@ function ProductForm({
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-600">Для чего? (абзацы через пустую строку)</label>
+            <p className="mt-0.5 text-[11px] text-zinc-500">Можно HTML: &lt;strong&gt;жирный&lt;/strong&gt;, &lt;ul&gt;&lt;li&gt;список&lt;/li&gt;&lt;/ul&gt;</p>
             <textarea
               value={form.forWhatText}
               onChange={(e) => setForm((f) => ({ ...f, forWhatText: e.target.value }))}
@@ -487,6 +540,7 @@ function ProductForm({
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-600">Как работает? (каждая строка = отдельный пункт)</label>
+            <p className="mt-0.5 text-[11px] text-zinc-500">В строке можно &lt;strong&gt;выделить жирным&lt;/strong&gt;</p>
             <textarea
               value={form.howItWorksRaw}
               onChange={(e) => setForm((f) => ({ ...f, howItWorksRaw: e.target.value }))}
@@ -497,6 +551,7 @@ function ProductForm({
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-600">Как использовать?</label>
+            <p className="mt-0.5 text-[11px] text-zinc-500">Абзацы через пустую строку; можно &lt;strong&gt;жирный&lt;/strong&gt;</p>
             <textarea
               value={form.howToUseText}
               onChange={(e) => setForm((f) => ({ ...f, howToUseText: e.target.value }))}
@@ -579,6 +634,26 @@ function ProductForm({
                 />
               </div>
               <div>
+                <label className="block text-xs font-medium text-zinc-600">Золотое Яблоко</label>
+                <input
+                  type="url"
+                  value={form.linkGoldApple}
+                  onChange={(e) => setForm((f) => ({ ...f, linkGoldApple: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  placeholder="https://goldapple.ru/..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600">Л&apos;Этуаль</label>
+                <input
+                  type="url"
+                  value={form.linkLetual}
+                  onChange={(e) => setForm((f) => ({ ...f, linkLetual: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  placeholder="https://www.letu.ru/..."
+                />
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-zinc-600">Видео дерматолога (обзор товара)</label>
                 <input
                   type="url"
@@ -619,10 +694,12 @@ function ProductForm({
 export default function AdminProductsClient({
   initialProducts,
   categories,
+  concernCards,
   pagination,
 }: {
   initialProducts: ProductWithCat[];
   categories: Category[];
+  concernCards: ConcernOption[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }) {
   const [products, setProducts] = useState(initialProducts);
@@ -680,6 +757,9 @@ export default function AdminProductsClient({
       linkWildberries: (p as { linkWildberries?: string | null }).linkWildberries || "",
       linkOzon: (p as { linkOzon?: string | null }).linkOzon || "",
       linkYandexMarket: (p as { linkYandexMarket?: string | null }).linkYandexMarket || "",
+      linkGoldApple: (p as { linkGoldApple?: string | null }).linkGoldApple || "",
+      linkLetual: (p as { linkLetual?: string | null }).linkLetual || "",
+      concernIds: Array.isArray((p as { concernIds?: string[] }).concernIds) ? (p as { concernIds: string[] }).concernIds : [],
       dermatologistVideoUrl: (p as { dermatologistVideoUrl?: string | null }).dermatologistVideoUrl || "",
     });
   };
@@ -733,6 +813,8 @@ export default function AdminProductsClient({
       const updated = await res.json();
       setProducts((prev) => prev.map((x) => (x.id === updated.id ? { ...updated, category: editing.category } : x)));
       setEditing(null);
+    } else {
+      await showApiError(res);
     }
   };
 
@@ -762,6 +844,8 @@ export default function AdminProductsClient({
       setProducts((prev) => [...prev, { ...created, category: cat! }].sort((a, b) => a.title.localeCompare(b.title)));
       setCreating(false);
       setForm(emptyForm());
+    } else {
+      await showApiError(res);
     }
   };
 
@@ -902,6 +986,7 @@ export default function AdminProductsClient({
           form={form}
           setForm={setForm}
           categories={categories}
+          concernCards={concernCards}
           onSave={saveEdit}
           onCancel={() => setEditing(null)}
           title="Редактировать позицию"
@@ -914,6 +999,7 @@ export default function AdminProductsClient({
           form={form}
           setForm={setForm}
           categories={categories}
+          concernCards={concernCards}
           onSave={saveCreate}
           onCancel={() => { setCreating(false); setForm(emptyForm()); }}
           title="Добавить позицию"

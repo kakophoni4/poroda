@@ -10,7 +10,7 @@ export default function ContactsPage() {
         <AboutSubnav activeHref="/contacts" />
 
         <p className="mt-8 text-sm leading-relaxed text-zinc-700 sm:mt-10">
-          Свяжитесь с нами по почте или телефону. По вопросам сотрудничества и дистрибуции — страница{" "}
+          Свяжитесь с нами по почте. По вопросам сотрудничества и дистрибуции — страница{" "}
           <Link href="/partners" className="font-medium text-zinc-900 underline underline-offset-2 hover:no-underline">
             Партнёрам
           </Link>
@@ -19,18 +19,12 @@ export default function ContactsPage() {
 
         <div className="mt-10 grid gap-8 sm:grid-cols-2">
           <div className="liquidGlass-dock rounded-3xl border border-white/40 p-6">
-            <div className="text-sm font-semibold text-zinc-900">Почта и телефон</div>
+            <div className="text-sm font-semibold text-zinc-900">Почта</div>
             <a
               href="mailto:hello@porodacosmetics.ru"
               className="mt-2 block text-zinc-700 hover:text-zinc-900"
             >
               hello@porodacosmetics.ru
-            </a>
-            <a
-              href="tel:+79084838717"
-              className="mt-1 block text-zinc-700 hover:text-zinc-900"
-            >
-              +7 908 483-87-17
             </a>
           </div>
         </div>

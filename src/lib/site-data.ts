@@ -1,4 +1,4 @@
-export const headerSloganLines = ["Косметика с пробиотиками,", "укрепляющая микробиом."] as const;
+export const headerSloganLines = ["Косметика с пробиотиками,", ""] as const;
 
 export const homeData = {
   hero: {

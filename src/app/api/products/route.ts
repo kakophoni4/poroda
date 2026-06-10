@@ -71,7 +71,8 @@ type CatalogFilter = "all" | "promo" | "new" | "bestseller";
 
 function buildWhere(
   sp: URLSearchParams,
-  sort: string | null
+  sort: string | null,
+  concernProductId?: string | null
 ): { where: Prisma.ProductWhereInput } {
   const q = sp.get("q")?.trim() || "";
   const category = sp.get("category")?.trim() || "";
@@ -93,6 +94,10 @@ function buildWhere(
 
   if (category) {
     and.push({ category: { slug: category } });
+  }
+
+  if (concernProductId) {
+    and.push({ concernIds: { has: concernProductId } });
   }
 
   if (q) {
@@ -212,7 +217,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.floor(Number(sp.get("limit")) || DEFAULT_PAGE_SIZE)));
     const sort = sp.get("sort") as SortKey;
 
-    const { where } = buildWhere(sp, sp.get("sort"));
+    const { where } = buildWhere(sp, sp.get("sort"), concernId);
     const orderBy = getOrderBy(sort);
 
     const [total, list] = await Promise.all([

@@ -40,7 +40,7 @@ export default async function HomePage() {
             <div className="liquidGlass-dock relative h-full min-h-[min(100%,200px)] w-full overflow-hidden rounded-2xl border border-white/40 shadow-sm sm:min-h-[min(100%,240px)] sm:rounded-3xl md:min-h-0">
               {/* eslint-disable-next-line @next/next/no-img-element -- static hero, fixed path; no layout shift requirement */}
               <img
-                src="/images/obshchie/hero.jpg"
+                src={copy["home.hero.image_url"]?.trim() || "/images/obshchie/hero.jpg"}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
               />

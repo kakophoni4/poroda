@@ -148,6 +148,12 @@ function buildSchema(): SiteCopySchemaItem[] {
   );
 
   S.push(
+    d(
+      "Главная — герой",
+      "Фото слева (путь /images/... или /uploads/...)",
+      "home.hero.image_url",
+      "/images/obshchie/hero.jpg"
+    ),
     d("Главная — герой", "Заголовок H1", "home.hero.title", homeData.hero.title),
     d("Главная — герой", "Подзаголовок (жирный)", "home.hero.subtitle_lead", homeData.hero.subtitleLead),
     d("Главная — герой", "Основной текст", "home.hero.subtitle", homeData.hero.subtitle),

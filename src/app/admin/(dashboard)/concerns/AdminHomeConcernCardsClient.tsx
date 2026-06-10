@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { HomeConcernCard } from "@prisma/client";
+import { CONCERN_TAGS_QUERY } from "@/lib/concern-catalog";
 
 const emptyForm = () => ({
   title: "",
@@ -12,6 +13,7 @@ const emptyForm = () => ({
 });
 
 const CATEGORY_OPTIONS = [
+  { value: CONCERN_TAGS_QUERY, label: "Подборка по тегам на товарах (рекомендуется)" },
   { value: "", label: "Вся продукция (/catalog)" },
   { value: "category=cleansing", label: "Очищение" },
   { value: "category=toners", label: "Тонизация" },
@@ -48,7 +50,7 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
     setForm({
       title: row.title,
       imageUrl: row.imageUrl,
-      catalogQuery: row.catalogQuery || "",
+      catalogQuery: row.catalogQuery?.startsWith("concern=") ? CONCERN_TAGS_QUERY : row.catalogQuery || "",
       sortOrder: row.sortOrder,
       active: row.active,
     });
@@ -154,7 +156,9 @@ export default function AdminHomeConcernCardsClient({ initial }: { initial: Home
               ))}
             </select>
             <p className="mt-1 text-xs text-zinc-500">
-              Ссылка будет: /catalog{form.catalogQuery ? `?${form.catalogQuery}` : ""}
+              {form.catalogQuery === CONCERN_TAGS_QUERY
+                ? "В карточках товаров отметьте эту проблему — при клике откроется подборка по тегам."
+                : `Ссылка: /catalog${form.catalogQuery ? `?${form.catalogQuery}` : ""}`}
             </p>
           </div>
           <div>

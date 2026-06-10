@@ -21,7 +21,7 @@ async function loadMergedSiteCopy(): Promise<Record<string, string>> {
 
 const cachedMerged = unstable_cache(loadMergedSiteCopy, ["site-copy-merged-v1"], {
   tags: ["site-copy"],
-  revalidate: 300,
+  revalidate: 60,
 });
 
 /** Слияние дефолтов и БД; кэш + dedupe в рамках одного запроса RSC */

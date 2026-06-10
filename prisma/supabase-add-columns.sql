@@ -31,6 +31,9 @@ END $$;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkWildberries" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkOzon" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkYandexMarket" TEXT;
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkGoldApple" TEXT;
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkLetual" TEXT;
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "concernIds" TEXT[] DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "dermatologistVideoUrl" TEXT;
 
 -- Тексты сайта (редактирование в админке)

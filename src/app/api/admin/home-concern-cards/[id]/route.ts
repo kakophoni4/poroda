@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { assertSameOrigin } from "@/lib/csrf";
 import { prisma } from "@/lib/db";
+import { resolveConcernCatalogQuery } from "@/lib/concern-catalog";
 
 type Row = {
   id: string;
@@ -26,7 +27,9 @@ export async function PATCH(
   const body = await request.json();
   const title = body.title != null ? String(body.title).trim() : undefined;
   const imageUrl = body.imageUrl != null ? String(body.imageUrl).trim() : undefined;
-  const catalogQuery = body.catalogQuery != null ? String(body.catalogQuery).trim() : undefined;
+  const catalogQueryRaw = body.catalogQuery != null ? String(body.catalogQuery).trim() : undefined;
+  const catalogQuery =
+    catalogQueryRaw != null ? resolveConcernCatalogQuery(catalogQueryRaw, id) : undefined;
   const sortOrder = body.sortOrder != null ? Number(body.sortOrder) || 0 : undefined;
   const active = body.active != null ? !!body.active : undefined;
 

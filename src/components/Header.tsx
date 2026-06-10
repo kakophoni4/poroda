@@ -105,8 +105,12 @@ export default function Header() {
             <div className="relative flex min-h-[2.75rem] shrink-0 items-center justify-between gap-2 py-1.5 lg:min-h-[2.5rem] lg:justify-start lg:py-1">
               <p className="z-[1] hidden max-w-[44%] text-left text-[11px] leading-snug text-zinc-700 sm:max-w-[40%] sm:text-xs sm:leading-tight md:text-sm lg:block lg:-translate-x-1 xl:-translate-x-2 2xl:-translate-x-3">
                 {t("header.slogan_line1")}
-                <br />
-                {t("header.slogan_line2")}
+                {t("header.slogan_line2")?.trim() ? (
+                  <>
+                    <br />
+                    {t("header.slogan_line2")}
+                  </>
+                ) : null}
               </p>
               <Link
                 href="/"

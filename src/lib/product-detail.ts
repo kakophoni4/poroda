@@ -18,6 +18,9 @@ export type ProductDetailFields = {
   linkWildberries?: string | null;
   linkOzon?: string | null;
   linkYandexMarket?: string | null;
+  linkGoldApple?: string | null;
+  linkLetual?: string | null;
+  concernIds?: string[];
   dermatologistVideoUrl?: string | null;
 };
 

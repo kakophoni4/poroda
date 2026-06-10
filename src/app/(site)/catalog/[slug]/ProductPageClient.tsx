@@ -10,6 +10,7 @@ import { sanitizePageViewReferrer } from "@/lib/sanitize-referrer";
 import { useCart } from "@/context/CartContext";
 import { useSiteCopy } from "@/context/SiteCopyContext";
 import DermatologistVideoModal from "@/components/DermatologistVideoModal";
+import RichHtml, { RichHtmlParagraphs } from "@/components/RichHtml";
 
 const categoryToFolder: Record<string, number> = { cleansing: 1, toners: 2, serums: 3, creams: 4, masks: 5, sets: 6 };
 
@@ -230,8 +231,12 @@ export default function ProductPageClient({ product }: { product: Product }) {
     if (product.linkOzon?.trim()) out.push({ href: product.linkOzon.trim(), label: "Ozon", abbr: "Ozon" });
     if (product.linkYandexMarket?.trim())
       out.push({ href: product.linkYandexMarket.trim(), label: "Яндекс Маркет", abbr: "Я.Маркет" });
+    if (product.linkGoldApple?.trim())
+      out.push({ href: product.linkGoldApple.trim(), label: "Золотое Яблоко", abbr: "ЗЯ" });
+    if (product.linkLetual?.trim())
+      out.push({ href: product.linkLetual.trim(), label: "Л'Этуаль", abbr: "ЛЭ" });
     return out;
-  }, [product.linkWildberries, product.linkOzon, product.linkYandexMarket]);
+  }, [product.linkWildberries, product.linkOzon, product.linkYandexMarket, product.linkGoldApple, product.linkLetual]);
 
   const marketplaceRow =
     marketplaceLinks.length > 0 ? (
@@ -712,11 +717,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
           {product.forWhatText && (
             <section className="space-y-4">
               <SectionTitle>Для чего?</SectionTitle>
-              <div className="space-y-4 text-sm leading-relaxed text-zinc-700 sm:text-[15px] sm:leading-[1.65]">
-                {product.forWhatText.split(/\n\n+/).map((para, i) => (
-                  <p key={i}>{para.trim()}</p>
-                ))}
-              </div>
+              <RichHtmlParagraphs
+                text={product.forWhatText}
+                className="space-y-4 text-sm leading-relaxed text-zinc-700 sm:text-[15px] sm:leading-[1.65]"
+              />
             </section>
           )}
 
@@ -729,7 +733,7 @@ export default function ProductPageClient({ product }: { product: Product }) {
                     key={i}
                     className="border-l-[3px] border-zinc-900/15 pl-4 text-sm leading-relaxed text-zinc-700 sm:text-[15px] sm:leading-[1.65]"
                   >
-                    {line}
+                    <RichHtml html={line} as="span" />
                   </li>
                 ))}
               </ul>
@@ -739,9 +743,10 @@ export default function ProductPageClient({ product }: { product: Product }) {
           {product.howToUseText && (
             <section className="space-y-4">
               <SectionTitle>Как использовать?</SectionTitle>
-              <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-700 sm:text-[15px] sm:leading-[1.65]">
-                {product.howToUseText}
-              </p>
+              <RichHtmlParagraphs
+                text={product.howToUseText}
+                className="text-sm leading-relaxed text-zinc-700 sm:text-[15px] sm:leading-[1.65]"
+              />
             </section>
           )}
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
 import { parseMarketplaceUrl } from "@/lib/marketplace-links";
 import { DERMATOLOGIST_VIDEO_INVALID_MESSAGE, parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
+import { sanitizeConcernIds } from "@/lib/concern-catalog";
 import { nullIfEmptyRich, sanitizePlainString, sanitizeRichTextLines, sanitizeStringList, sanitizeText } from "@/lib/sanitize";
 
 export async function PATCH(
@@ -32,6 +33,13 @@ export async function PATCH(
       return NextResponse.json({ error: DERMATOLOGIST_VIDEO_INVALID_MESSAGE }, { status: 400 });
     }
   }
+  const imageUrlsPatch =
+    body.imageUrls !== undefined
+      ? Array.isArray(body.imageUrls)
+        ? body.imageUrls.map((u: string) => String(u).trim()).filter(Boolean)
+        : []
+      : undefined;
+
   const product = await prisma.product.update({
     where: { id },
     data: {
@@ -45,10 +53,12 @@ export async function PATCH(
       ...(body.isPromo != null && { isPromo: !!body.isPromo }),
       ...(body.isBestseller != null && { isBestseller: !!body.isBestseller }),
       ...(body.skinTypes != null && { skinTypes: sanitizeStringList(body.skinTypes) }),
-      ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
-      ...(body.imageUrls !== undefined && {
-        imageUrls: Array.isArray(body.imageUrls) ? body.imageUrls.map((u: string) => String(u).trim()).filter(Boolean) : [],
+      ...(body.imageUrl !== undefined && imageUrlsPatch === undefined && { imageUrl: body.imageUrl?.trim() || null }),
+      ...(imageUrlsPatch !== undefined && {
+        imageUrls: imageUrlsPatch,
+        imageUrl: imageUrlsPatch[0] ?? null,
       }),
+      ...(body.concernIds !== undefined && { concernIds: sanitizeConcernIds(body.concernIds) }),
       ...(body.imageFocusX !== undefined && { imageFocusX: body.imageFocusX == null ? null : Math.max(0, Math.min(100, Number(body.imageFocusX))) }),
       ...(body.imageFocusY !== undefined && { imageFocusY: body.imageFocusY == null ? null : Math.max(0, Math.min(100, Number(body.imageFocusY))) }),
       ...(body.composition !== undefined && { composition: nullIfEmptyRich(body.composition) }),
@@ -87,6 +97,8 @@ export async function PATCH(
       ...(body.linkWildberries !== undefined && { linkWildberries: parseMarketplaceUrl(body.linkWildberries) }),
       ...(body.linkOzon !== undefined && { linkOzon: parseMarketplaceUrl(body.linkOzon) }),
       ...(body.linkYandexMarket !== undefined && { linkYandexMarket: parseMarketplaceUrl(body.linkYandexMarket) }),
+      ...(body.linkGoldApple !== undefined && { linkGoldApple: parseMarketplaceUrl(body.linkGoldApple) }),
+      ...(body.linkLetual !== undefined && { linkLetual: parseMarketplaceUrl(body.linkLetual) }),
       ...(body.dermatologistVideoUrl !== undefined && {
         dermatologistVideoUrl: parseDermatologistVideoUrl(body.dermatologistVideoUrl),
       }),

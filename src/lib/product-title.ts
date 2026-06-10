@@ -1,5 +1,5 @@
 /** Максимальная длина названия позиции каталога (ввод в админке и API). */
-export const MAX_PRODUCT_TITLE_LENGTH = 40;
+export const MAX_PRODUCT_TITLE_LENGTH = 80;
 
 export function normalizeProductTitle(title: string): string {
   return title.trim().slice(0, MAX_PRODUCT_TITLE_LENGTH).trimEnd();
@@ -14,5 +14,5 @@ export function catalogDisplayTitle(title: string): string {
 
 /** Если название длинное — в карточке показываем описание короче. */
 export function catalogDescriptionLineClamp(titleForCard: string): 1 | 2 {
-  return titleForCard.length >= 30 ? 1 : 2;
+  return titleForCard.length >= 55 ? 1 : 2;
 }

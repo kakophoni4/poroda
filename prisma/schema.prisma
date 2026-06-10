@@ -89,6 +89,7 @@ model Product {
   isPromo      Boolean  @default(false) // акции
   isBestseller Boolean  @default(false) // бестселлеры
   skinTypes    String[] @default([])
+  concernIds   String[] @default([]) // id карточек «Проблемы» на главной — для подборки в каталоге
   sortOrder    Int      @default(0)
   featuredSortOrder Int? // если задан — товар показывается на главной в этом порядке; иначе на главной рандом
   imageUrl     String?
@@ -116,6 +117,8 @@ model Product {
   linkWildberries  String? // карточка на Wildberries
   linkOzon         String? // Ozon
   linkYandexMarket String? // Яндекс Маркет
+  linkGoldApple    String? // Золотое Яблоко
+  linkLetual       String? // Л'Этуаль
   dermatologistVideoUrl String? // видео-обзор дерматолога (YouTube, Vimeo, прямой mp4/webm)
   archivedAt   DateTime? // снятие с витрины без потери ссылок из OrderItem
   createdAt    DateTime @default(now())

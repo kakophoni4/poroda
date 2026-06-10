@@ -1,5 +1,6 @@
 import AdminProductsClient from "./AdminProductsClient";
 import { parseAdminListPaginationFromRoute, totalPages } from "@/lib/admin-list-pagination";
+import { getHomeConcernCardsForAdmin } from "@/lib/home-concern-cards";
 import { prisma } from "@/lib/db";
 import type { Category, Product } from "@prisma/client";
 
@@ -13,6 +14,9 @@ ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "composition" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "components" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "extraField1" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "extraField2" TEXT;
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "concernIds" TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkGoldApple" TEXT;
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "linkLetual" TEXT;
 CREATE TABLE IF NOT EXISTS "UserFavorite" (
   "id" TEXT NOT NULL,
   "userId" TEXT NOT NULL,
@@ -82,6 +86,7 @@ export default async function AdminProductsPage({
     );
   }
   const { total, products, categories } = data;
+  const concernCards = (await getHomeConcernCardsForAdmin()).map((c) => ({ id: c.id, title: c.title }));
   const pagination = { page, limit, total, totalPages: totalPages(total, limit) };
   return (
     <>
@@ -97,6 +102,7 @@ export default async function AdminProductsPage({
         key={`${page}-${total}`}
         initialProducts={products}
         categories={categories}
+        concernCards={concernCards}
         pagination={pagination}
       />
     </>

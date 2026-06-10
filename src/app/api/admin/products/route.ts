@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { MAX_PRODUCT_TITLE_LENGTH } from "@/lib/product-title";
 import { parseMarketplaceUrl } from "@/lib/marketplace-links";
 import { DERMATOLOGIST_VIDEO_INVALID_MESSAGE, parseDermatologistVideoUrl } from "@/lib/dermatologist-video";
+import { sanitizeConcernIds } from "@/lib/concern-catalog";
 import {
   nullIfEmptyRich,
   sanitizePlainString,
@@ -79,6 +80,9 @@ export async function POST(request: NextRequest) {
     linkWildberries,
     linkOzon,
     linkYandexMarket,
+    linkGoldApple,
+    linkLetual,
+    concernIds,
     dermatologistVideoUrl,
   } = body as {
     slug: string;
@@ -117,6 +121,9 @@ export async function POST(request: NextRequest) {
     linkWildberries?: string;
     linkOzon?: string;
     linkYandexMarket?: string;
+    linkGoldApple?: string;
+    linkLetual?: string;
+    concernIds?: string[];
     dermatologistVideoUrl?: string;
   };
   if (!slug || !title || !categoryId || price == null) {
@@ -148,6 +155,7 @@ export async function POST(request: NextRequest) {
       isPromo: !!isPromo,
       isBestseller: !!isBestseller,
       skinTypes: sanitizeStringList(skinTypes),
+      concernIds: sanitizeConcernIds(concernIds),
       imageUrl: imageUrl?.trim() || urls[0] || null,
       imageUrls: urls,
       imageFocusX: focusX,
@@ -182,6 +190,8 @@ export async function POST(request: NextRequest) {
       linkWildberries: parseMarketplaceUrl(linkWildberries),
       linkOzon: parseMarketplaceUrl(linkOzon),
       linkYandexMarket: parseMarketplaceUrl(linkYandexMarket),
+      linkGoldApple: parseMarketplaceUrl(linkGoldApple),
+      linkLetual: parseMarketplaceUrl(linkLetual),
       dermatologistVideoUrl: parseDermatologistVideoUrl(dermatologistVideoUrl),
     },
   });
